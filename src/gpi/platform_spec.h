@@ -1,7 +1,7 @@
 /***************************************************************************************************
  ***************************************************************************************************
  *
- *	Copyright (c) 2018 - 2021, Networked Embedded Systems Lab, TU Dresden
+ *	Copyright (c) 2018 - 2025, Networked Embedded Systems Lab, TU Dresden
  *	All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
  *
  *	@brief					defines platform specific attributes and settings
  *
- *	@version				$Id: c8558408bb8eb7d46587dd3e7e754d89f65be535 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann
@@ -48,6 +48,54 @@
 
 	Intervals defined by <name> ... <name>_END are half open, i.e., <name>_END represents the
 	first value outside the interval (it is the same concept as used with C++ STL containers).
+
+	# Architecture Names
+	
+	There can be a huge variety of platforms, so it is important to choose macro names carefully.
+	
+	## Board Names
+	
+	Board names should (roughly) follow the scheme <vendor>_<board>. Here, 
+	
+		* <vendor> should be some unique vendor identification (can be abbreviated as long as it
+		  is unique, e.g. using common vendor codes like TI (Texas Instruments), ST(M) (ST Micro) 
+		  and the like). 
+		 
+		* <board> should be some *unique* board identification, e.g. a product number. 
+		  Do not use informal names that are not unique or might change.
+
+	This scheme should also be followed in case of custom boards, where <vendor> and <board>
+	can be some	"less official" identifiers, but again they must be unique.
+
+	In case of a "standard" board connected to a custom environment (e.g. with application specific
+	GPIO connections) it is prefered to use the scheme <vendor>_<board>_<customization> with 
+	<vendor> and <board> as above and <customization> identifying the application specific usage.
+	If there is a need to distinguish such customizations, there should also be a PURE variant
+	(i.e., <vendor>_<board>_PURE) that identifies the base board used in a stand-alone manner.
+
+	It may be convenient to identify a family of boards from a different perspective, e.g.
+	plug-in cards for a specific hardware system or from a functionality point of view. If such
+	naming should be used, then it should not replace the <vendor>_<board>[_<customization>]
+	baseline. Instead, names following a different taxonomy should be added as aliases refering
+	to the standard names.
+	
+	Example:
+	
+		GPI_ARCH_BOARD_nRF_PCA10059
+			<vendor> = nRF, <board> = PCA10059
+			
+		GPI_ARCH_BOARD_nRF_PCA10059_PURE
+			nRF_PCA10059 used stand-alone
+			
+		GPI_ARCH_BOARD_nRF_PCA10059_FLOCKLAB
+			nRF_PCA10059 used as FlockLab target (with custom GPIO connections)
+			
+		GPI_ARCH_BOARD_FLOCKLAB_nRF5
+			alias for nRF_PCA10059_FLOCKLAB
+			Here, FLOCKLAB is used as a unique "vendor" code for FlockLab targets, while nRF5 
+			is the board identifier. The latter is not just a simple name shot from the hip, 
+			it is the name used to identify the board in FlockLab XML files, which can be 
+			expected to be a unique identifier (in the context of FlockLab).
 
  **************************************************************************************************/
 
@@ -367,22 +415,48 @@
 // ARM devices and boards
 // Typically we use the following format: GPI_ARCH_BOARD_<vendor>_<product-code>
 
-// Nordic Semiconductor nRF52840
-#define GPI_ARCH_DEVICE_nRF52840				(GPI_ARCH_CORE_ARM_M4F + _GPI_ARCH_DEVICE(0))
-#define GPI_ARCH_DEVICE_nRF52840_END			(GPI_ARCH_CORE_ARM_M4F + _GPI_ARCH_DEVICE(1))
+// Nordic Semiconductor nRF528xx
+#define GPI_ARCH_DEVICE_nRF528xx				(GPI_ARCH_CORE_ARM_M4F + _GPI_ARCH_DEVICE(0))
+	#define GPI_ARCH_DEVICE_nRF52833				(GPI_ARCH_CORE_ARM_M4F + _GPI_ARCH_DEVICE(0))
+	#define GPI_ARCH_DEVICE_nRF52833_END			(GPI_ARCH_CORE_ARM_M4F + _GPI_ARCH_DEVICE(1))
+	#define GPI_ARCH_DEVICE_nRF52840				(GPI_ARCH_CORE_ARM_M4F + _GPI_ARCH_DEVICE(1))
+	#define GPI_ARCH_DEVICE_nRF52840_END			(GPI_ARCH_CORE_ARM_M4F + _GPI_ARCH_DEVICE(2))
+#define GPI_ARCH_DEVICE_nRF528xx_END			(GPI_ARCH_CORE_ARM_M4F + _GPI_ARCH_DEVICE(2))
 
 // NOTE: PCA... is the reliable way to refer to a specific Nordic board. Names like nRF52840DK
 // stand for kits (board + accessories) and may change.
-#define GPI_ARCH_BOARD_nRF_PCA10056				(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(1))		// = nRF52840 DK
-#define GPI_ARCH_BOARD_nRF_PCA10056_END			(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(2))
-#define GPI_ARCH_BOARD_nRF_PCA10059				(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(2))		// = nRF52840 USB Dongle
-	#define GPI_ARCH_BOARD_nRF5_FLOCKLAB		(GPI_ARCH_BOARD_nRF_PCA10059 + _GPI_ARCH_BOARD(1))
-	#define GPI_ARCH_BOARD_nRF5_FLOCKLAB_END	(GPI_ARCH_BOARD_nRF_PCA10059 + _GPI_ARCH_BOARD(2))
-#define GPI_ARCH_BOARD_nRF_PCA10059_END			(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(4))
-#define GPI_ARCH_BOARD_RIGADO_BMD340			(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(4))
-	#define GPI_ARCH_BOARD_TUDNES_DPP2COM			(GPI_ARCH_BOARD_RIGADO_BMD340 + _GPI_ARCH_BOARD(0))
-	#define GPI_ARCH_BOARD_TUDNES_DPP2COM_END		(GPI_ARCH_BOARD_RIGADO_BMD340 + _GPI_ARCH_BOARD(1))
-#define GPI_ARCH_BOARD_RIGADO_BMD340_END		(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(5))
+#define GPI_ARCH_BOARD_nRF_PCA10056					(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(1))		// = nRF52840 DK
+#define GPI_ARCH_BOARD_nRF_PCA10056_END				(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(2))
+#define GPI_ARCH_BOARD_nRF_PCA10059					(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(2))		// = nRF52840 USB Dongle
+	#define GPI_ARCH_BOARD_nRF_PCA10059_PURE			(GPI_ARCH_BOARD_nRF_PCA10059 + _GPI_ARCH_BOARD(0))
+	#define GPI_ARCH_BOARD_nRF_PCA10059_PURE_END		(GPI_ARCH_BOARD_nRF_PCA10059 + _GPI_ARCH_BOARD(1))
+	#define GPI_ARCH_BOARD_nRF_PCA10059_FLOCKLAB		(GPI_ARCH_BOARD_nRF_PCA10059 + _GPI_ARCH_BOARD(1))	// = PCA10059 FlockLab target
+	#define GPI_ARCH_BOARD_nRF_PCA10059_FLOCKLAB_END	(GPI_ARCH_BOARD_nRF_PCA10059 + _GPI_ARCH_BOARD(2))
+	#define GPI_ARCH_BOARD_FLOCKLAB_nRF5				 GPI_ARCH_BOARD_nRF_PCA10059_FLOCKLAB			// alias for FlockLab oriented naming
+	#define GPI_ARCH_BOARD_FLOCKLAB_nRF5_END			 GPI_ARCH_BOARD_nRF_PCA10059_FLOCKLAB_END
+	// GPI_ARCH_BOARD_nRF5_FLOCKLAB is deprecated, use GPI_ARCH_BOARD_FLOCKLAB_nRF5 instead
+	// (for reasons see comments about board names at the beginning of this file)
+	//#define GPI_ARCH_BOARD_nRF5_FLOCKLAB				 GPI_ARCH_BOARD_nRF_PCA10059_FLOCKLAB
+	//#define GPI_ARCH_BOARD_nRF5_FLOCKLAB_END			 GPI_ARCH_BOARD_nRF_PCA10059_FLOCKLAB_END
+#define GPI_ARCH_BOARD_nRF_PCA10059_END				(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(4))
+
+// TUD NES Lab DPP2 platform
+#define GPI_ARCH_BOARD_RIGADO_BMD340				(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(4))
+	#define GPI_ARCH_BOARD_TUDNES_DPP2COM				(GPI_ARCH_BOARD_RIGADO_BMD340 + _GPI_ARCH_BOARD(0))
+	#define GPI_ARCH_BOARD_TUDNES_DPP2COM_END			(GPI_ARCH_BOARD_RIGADO_BMD340 + _GPI_ARCH_BOARD(1))
+#define GPI_ARCH_BOARD_RIGADO_BMD340_END			(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(5))
+
+// TUD NES Lab Shepherd testbed targets
+#define GPI_ARCH_BOARD_TUDNES_SHEPHERD_NRF52840FRAM_V13		(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(5))
+#define GPI_ARCH_BOARD_TUDNES_SHEPHERD_NRF52840FRAM_V13_END	(GPI_ARCH_DEVICE_nRF52840 + _GPI_ARCH_BOARD(6))
+
+// Nessie Circuits Riotee platform
+#define GPI_ARCH_BOARD_NESSIE_RIOTEE_NRF			(GPI_ARCH_DEVICE_nRF52833 + _GPI_ARCH_BOARD(1))
+	#define GPI_ARCH_BOARD_NESSIE_RIOTEE_NRF_PURE		(GPI_ARCH_BOARD_NESSIE_RIOTEE_NRF + _GPI_ARCH_BOARD(0))
+	#define GPI_ARCH_BOARD_NESSIE_RIOTEE_NRF_PURE_END	(GPI_ARCH_BOARD_NESSIE_RIOTEE_NRF + _GPI_ARCH_BOARD(1))
+	#define GPI_ARCH_BOARD_NESSIE_RIOTEE_NRF_BOARD		(GPI_ARCH_BOARD_NESSIE_RIOTEE_NRF + _GPI_ARCH_BOARD(1))
+	#define GPI_ARCH_BOARD_NESSIE_RIOTEE_NRF_BOARD_END	(GPI_ARCH_BOARD_NESSIE_RIOTEE_NRF + _GPI_ARCH_BOARD(2))
+#define GPI_ARCH_BOARD_NESSIE_RIOTEE_NRF_END		(GPI_ARCH_DEVICE_nRF52833 + _GPI_ARCH_BOARD(3))
 
 #if (__ARM_ARCH)
 
@@ -397,6 +471,10 @@
 		#define GPI_PLATFORM_DIR	arm/nordic/pca10059
 	#elif GPI_ARCH_IS_BOARD(TUDNES_DPP2COM)
 		#define GPI_PLATFORM_DIR	arm/nordic/dpp2com
+	#elif GPI_ARCH_IS_BOARD(TUDNES_SHEPHERD_NRF52840FRAM_V13)
+		#define GPI_PLATFORM_DIR	arm/nordic/shepherd_nrf52
+	#elif GPI_ARCH_IS_BOARD(NESSIE_RIOTEE_NRF)
+		#define GPI_PLATFORM_DIR	arm/nordic/riotee
 	#else
 		#error unknown board
 //		#define GPI_PLATFORM_DIR	arm/TODO

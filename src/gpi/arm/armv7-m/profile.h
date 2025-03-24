@@ -32,7 +32,7 @@
  *
  *	@brief					support for program execution time profiling
  *
- *	@version				$Id: 00dae4aff2e1ddf362028560630a3778b7a0ecad $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann

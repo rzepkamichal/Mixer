@@ -1,7 +1,7 @@
 /***************************************************************************************************
  ***************************************************************************************************
  *
- *	Copyright (c) 2019, Networked Embedded Systems Lab, TU Dresden
+ *	Copyright (c) 2019 - 2022, Networked Embedded Systems Lab, TU Dresden
  *	All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
  *
  *	@brief					optimized low-level functions, tuned for ARMv7-M
  *
- *	@version				$Id: bc9ba0cdc35b85fc49fd6ed91e213d2c7afbf9c1 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann
@@ -194,6 +194,8 @@ static ALWAYS_INLINE int_fast8_t gpi_get_lsb_32_core(uint32_t x, const int test_
 	// has no semantics when inline asm is used.
 	if (test_zero)
 	{
+		//ASSERT_CT_WARN(IS_CONST_EXPRESSION(return_if_zero));
+
 		// NOTE: sub %0, %1, %2 (third line) is equivalent to mov %0, -%2
 		// implementing it this way allows arbitrary negative values for return_if_zero
 		// (remember the limited possibilities for immediate constants at operand2)
@@ -205,7 +207,7 @@ static ALWAYS_INLINE int_fast8_t gpi_get_lsb_32_core(uint32_t x, const int test_
 			"rbitne	%0, %1		\n"
 			"clzne	%0, %0		\n"
 			: "=r"(y)
-			: "r"(x), "i"((uint8_t)-return_if_zero)
+			: "r"(x), "ir"((uint8_t)-return_if_zero)
 			: "cc"
 		);
     }

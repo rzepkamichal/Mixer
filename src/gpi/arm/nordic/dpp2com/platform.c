@@ -32,7 +32,7 @@
  *
  *	@brief					platform interface functions
  *
- *	@version				$Id: ec37c2eac77ba05e9bf52731d0c5864a14056e67 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Fabian Mager
@@ -477,13 +477,13 @@ void gpi_platform_init()
 	// if VHT: use PPI to connect RTC->EVENTS_TICK to TIMER->TASKS_CAPTURE
 	#if GPI_HYBRID_CLOCK_USE_VHT
 
-		NRF_PPI->CH[GPI_HYBRID_CLOCK_NRF_PPI_CHANNEL].EEP =
+		NRF_PPI->CH[GPI_ARM_NRF_HYBRID_CLOCK_PPI_CHANNEL].EEP =
 			(uintptr_t)&(_gpi_clocks_rtc->EVENTS_TICK);
 
-		NRF_PPI->CH[GPI_HYBRID_CLOCK_NRF_PPI_CHANNEL].TEP =
-			(uintptr_t)&(_gpi_clocks_fast_timer->TASKS_CAPTURE[GPI_HYBRID_CLOCK_NRF_CAPTURE_REG]);
+		NRF_PPI->CH[GPI_ARM_NRF_HYBRID_CLOCK_PPI_CHANNEL].TEP =
+			(uintptr_t)&(_gpi_clocks_fast_timer->TASKS_CAPTURE[GPI_ARM_NRF_HYBRID_CLOCK_CAPTURE_REG]);
 
-		NRF_PPI->CHENSET = BV(GPI_HYBRID_CLOCK_NRF_PPI_CHANNEL);
+		NRF_PPI->CHENSET = BV(GPI_ARM_NRF_HYBRID_CLOCK_PPI_CHANNEL);
 
 	#endif
 

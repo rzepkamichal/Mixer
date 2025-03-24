@@ -1,7 +1,7 @@
 /***************************************************************************************************
  ***************************************************************************************************
  *
- *	Copyright (c) 2019, Networked Embedded Systems Lab, TU Dresden
+ *	Copyright (c) 2019 - 2024, Networked Embedded Systems Lab, TU Dresden
  *	All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -28,11 +28,11 @@
  *
  ***********************************************************************************************//**
  *
- *	@file					gpi/arm/nordic/nrf52840/radio.c
+ *	@file					gpi/arm/nordic/nrf528xx/radio.c
  *
- *	@brief					nRF52840 radio interface
+ *	@brief					nRF528xx radio interface
  *
- *	@version				$Id: 9173968a689d35b83d32dafdbba369a83a02d8aa $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann
@@ -164,7 +164,25 @@ void gpi_radio_set_tx_power(unsigned int pa_level)
 
 //*************************************************************************************************
 
-void gpi_radio_set_channel(unsigned int channel)
+// directly set center frequency (alternative to gpi_radio_set_channel())
+void gpi_radio_set_center_frequency(uint_fast16_t frequency)
+{
+	GPI_TRACE_FUNCTION();
+
+	// leave >= 0.5 MHz to ISM band's boundaries, which is (rather too) little with BLE 2M
+	assert(frequency > 2400);
+	assert(frequency <= 2483);
+	
+	NRF_RADIO->FREQUENCY =
+		BV_BY_VALUE(RADIO_FREQUENCY_FREQUENCY, frequency - 2400) |
+		BV_BY_NAME(RADIO_FREQUENCY_MAP, Default);
+	
+	GPI_TRACE_RETURN();
+}
+
+//*************************************************************************************************
+
+void gpi_radio_set_channel(int channel)
 {
 	GPI_TRACE_FUNCTION();
 
@@ -187,13 +205,42 @@ void gpi_radio_set_channel(unsigned int channel)
 		case BLE_125k:
 		case BLE_500k:
 		{
-			assert(channel <= 39);
+			// ENABLE_EXTRA_CHANNELS adds three additional inofficial channels at the ISM band's
+			// boundaries, namely channel -1 at 2401 MHz, channel 40 at 2482 MHz, and channel 41
+			// at 2483 MHz. They are interesting (at least) for internal tests because they
+			// promise particularly little external interference. In detail:
+			//
+			// * ISM band:				2400   ... 2483.5
+			// * WiFi (>= 802.11g):		2402   ... 2482
+			// * extra channel -1:		2401-w ... 2401+w	no WiFi, close to BLE 0
+			// * BLE RF channel 0:		2402-w ... 2402+w
+			//   ...
+			// * BLE RF channel 39:		2480-w ... 2480+w
+			// * extra channel 40:		2482-w ... 2482+w	WiFi
+			// * extra channel 41:		2483-w ... 2483+w	no WiFi, close to ISM band boundary
+			//
+			// With a channel bandwidth of roughly 1 MHz (i.e. w = 0.5) for BLE 1M and long range
+			// modes the extra channels do not overlap. ATTENTION: This does not hold for BLE 2M!
+			// Note that BLE RF channels 0 and 39 (= BLE physical channels 37 and 39) are
+			// advertising channels.
+			#define ENABLE_EXTRA_CHANNELS	1
+			
+			#if ENABLE_EXTRA_CHANNELS
+				assert((-1 <= channel) && (channel <= 41));
+			#else
+				assert((0 <= channel) && (channel <= 39));
+			#endif
 			
 			unsigned int freq;
 
-			// mapping of channel: see Bluetooth Core Spec. v5.1 Vol. 6 Part B section 1.4.1
+			// mapping: see Bluetooth Core Spec. v5.1 Vol. 6 Part B section 1.4.1
 			switch (channel)
 			{
+				#if ENABLE_EXTRA_CHANNELS
+					case -1:	freq = 1;							break;
+					case 40:	freq = 82;							break;
+					case 41:	freq = 83;							break;
+				#endif
 				case 0 ... 10:	freq = 4 + ((channel - 0) * 2);		break;
 				case 11 ... 36:	freq = 28 + ((channel - 11) * 2);	break;
 				case 37:		freq = 2;							break;
@@ -374,6 +421,7 @@ void gpi_radio_init(Gpi_Radio_Mode mode)
 			// NRF_RADIO->DACNF = 0;
 			// NRF_RADIO->DAB[n]/DAP[n] = 0;	// don't care while DACNF = 0
 			// NRF_RADIO->MHRMATCH...			// precise meaning of these settings is unclear
+			// NRF_RADIO->DFEMODE = 0;			// nRF52833
 
 			gpi_radio_set_channel(37);						// just as reset (default) value
 			gpi_radio_set_tx_power(0);						// just as reset (default) value

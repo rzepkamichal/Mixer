@@ -32,7 +32,7 @@
  *
  *	@brief					platform interface functions, specific for tmote
  *
- *	@version				$Id: d50a88a27bc0f4c9d4769151bd696d8f9cfd5482 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann

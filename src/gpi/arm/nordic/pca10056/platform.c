@@ -1,7 +1,7 @@
 /***************************************************************************************************
  ***************************************************************************************************
  *
- *	Copyright (c) 2019 - 2021, Networked Embedded Systems Lab, TU Dresden
+ *	Copyright (c) 2019 - 2024, Networked Embedded Systems Lab, TU Dresden
  *	All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
  *
  *	@brief					platform interface functions
  *
- *	@version				$Id: 89cf65ff34b2484aee81c903f616c6f4570039fa $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann
@@ -45,18 +45,9 @@
 
  **************************************************************************************************/
 //***** Trace Settings *****************************************************************************
-/*
-#include <gpi/trace.h>
 
-// message groups for TRACE messages (used in GPI_TRACE_MSG() calls)
-// define groups appropriate for your needs, assign one bit per group
-// values > GPI_TRACE_LOG_USER (i.e. upper 8 bits) are reserved
-#define TRACE_GROUP1		0x00000001
-#define TRACE_GROUP2		0x00000002
 
-// select active message groups, i.e., the messages to be printed (others will be dropped)
-GPI_TRACE_CONFIG(<TODO: module name>, TRACE_BASE_SELECTION |  GPI_TRACE_LOG_USER);
-*/
+
 //**************************************************************************************************
 //**** Includes ************************************************************************************
 
@@ -67,15 +58,17 @@ GPI_TRACE_CONFIG(<TODO: module name>, TRACE_BASE_SELECTION |  GPI_TRACE_LOG_USER
 #include "gpi/clocks.h"
 #include "gpi/trace.h"
 
+#include "../nrf528xx/platform_internal.h"
+
 #include <nrf.h>
 
 #include "gpi/resource_check.h"
 
 GPI_RESOURCE_RESERVE_SHARED(NRF_UARTE, 0);
 
-// main clock resources are reserved in ../nrf52840/clocks.c
+// main clock resources are reserved in ../nrf528xx/clocks.c
 
-//#if ((GPI_TRACE_MODE & GPI_TRACE_MODE_TRACE) && GPI_TRACE_USE_DSR)
+//#if (GPI_TRACE_MODE_IS_TRACE && GPI_TRACE_USE_DSR)
 //	GPI_RESOURCE_RESERVE(TODO);		// GPI_TRACE_DSR_IRQ
 //#endif
 
@@ -102,114 +95,12 @@ GPI_RESOURCE_RESERVE_SHARED(NRF_UARTE, 0);
 //**************************************************************************************************
 //***** Global Variables ***************************************************************************
 
-uint_fast8_t		gpi_wakeup_event = 0;
+
 
 //**************************************************************************************************
 //***** Local Functions ****************************************************************************
 
-// init (reset) CPU core to defined state
-// this function can be moved to generic ARM code if helpful
-static void core_init()
-{
-	// NOTE: some of the regs are already initialized for sure (since program arrived here)
 
-	gpi_int_disable();
-	__set_BASEPRI(0);
-	__set_FAULTMASK(0);
-	__set_CONTROL(0);		// no floating point-context, use MSP, privileged level
-	__DSB();
-	__ISB();
-
-	// disable MPU
-	MPU->CTRL = 0;
-
-	// TODO: enable FPU if requested
-
-	// TODO: setup Traps and Fault Exception Handlers (if requested)
-	// -> regs. in System Control Block
-
-	// TODO: setup SysTick timer if requested
-}
-
-//**************************************************************************************************
-
-// init UART
-// TODO: maybe make it a public function in platform.h (params: baudrate, flags (like HW flow control))
-// NOTE: if function is inlined and baudrate is constant then it gets well optimized
-static inline void uart_init(uint32_t baudrate)
-{
-	assert(baudrate <= 1000000);		// see spec. UARTE features
-
-	// TODO: if enabled: STOPTX/RX
-
-	// disable UART during reconfiguration
-	NRF_UARTE0->ENABLE = BV_BY_NAME(UARTE_ENABLE_ENABLE, Disabled);
-
-	// configure pins
-
-	NRF_UARTE0->PSEL.RTS = BV_BY_NAME(UARTE_PSEL_RTS_CONNECT, Disconnected);
-	NRF_UARTE0->PSEL.CTS = BV_BY_NAME(UARTE_PSEL_CTS_CONNECT, Disconnected);
-
-	NRF_UARTE0->PSEL.TXD =
-		BV_BY_VALUE(UARTE_PSEL_TXD_PORT, 0)	|
-		BV_BY_VALUE(UARTE_PSEL_TXD_PIN, 6)	|
-		BV_BY_NAME(UARTE_PSEL_TXD_CONNECT, Connected);
-
-	NRF_UARTE0->PSEL.RXD =
-		BV_BY_VALUE(UARTE_PSEL_RXD_PORT, 0)	|
-		BV_BY_VALUE(UARTE_PSEL_RXD_PIN, 8)	|
-		BV_BY_NAME(UARTE_PSEL_RXD_CONNECT, Connected);
-
-	// set UART mode: 8 data bits, 1 stop bit, no parity
-	NRF_UARTE0->CONFIG =
-		BV_BY_NAME(UARTE_CONFIG_HWFC, Disabled)		|
-		BV_BY_NAME(UARTE_CONFIG_PARITY, Excluded)	|
-		BV_BY_NAME(UARTE_CONFIG_STOP, One);
-
-	// set baudrate
-	// Unfortunately, the documentation for the register value is very meager.
-	// It seems that the baudrate is generated from PCLK16M by an up-counter issuing one tick
-	// per overflow and the BAUDRATE register contains the increment value of that counter.
-	// The increment can be approximated as BAUDRATE (>)= baudrate * 2^32 / 16000000.
-	// It seems that the counter is 20 bit wide (i.e. only the upper bits of BAUDRATE are used).
-	// The following posts confirm the observations:
-	// https://devzone.nordicsemi.com/f/nordic-q-a/391/uart-baudrate-register-values#post-id-1194
-	// https://devzone.nordicsemi.com/f/nordic-q-a/27666/uart-baudrate-nrf52
-	switch (baudrate)
-	{
-		// use official values for common baudrates
-		case   1200:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud1200;		break;
-		case   2400:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud2400;		break;
-		case   4800:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud4800;		break;
-		case   9600:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud9600;		break;
-		case  14400:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud14400;	break;
-		case  19200:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud19200;	break;
-		case  28800:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud28800;	break;
-		case  38400:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud38400;	break;
-		case  56000:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud56000;	break;
-		case  57600:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud57600;	break;
-		case  76800:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud76800;	break;
-		case 115200:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud115200;	break;
-		case 230400:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud230400;	break;
-		case 460800:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud460800;	break;
-		case 921600:	NRF_UARTE0->BAUDRATE = UART_BAUDRATE_BAUDRATE_Baud921600;	break;
-
-		// approximate other baudrates
-		// NOTE: The computation is exact for power-of-two dividers, so we do not need to
-		// provide explicit values for baudrates like 31250, 250000, or 1000000.
-		default:
-		{
-			NRF_UARTE0->BAUDRATE = ((UINT64_C(0x100000000) * baudrate) + 8000000) / 16000000;
-			break;
-		}
-	}
-
-	// mask interrupts
-	NRF_UARTE0->INTEN = 0;
-
-	// start UART
-	NRF_UARTE0->ENABLE = BV_BY_NAME(UARTE_ENABLE_ENABLE, Enabled);
-}
 
 //**************************************************************************************************
 //***** Global Functions ***************************************************************************
@@ -248,12 +139,17 @@ void gpi_platform_init()
 	// - NFCPINS is handled in nRF startup code (see CONFIG_NFCT_PINS_AS_GPIOS)
 
 	// (re)init POWER settings
+	// supply voltage mode = High Voltage mode
 	NRF_POWER->INTENCLR = -1u;
 	NRF_POWER->POFCON = BV_BY_NAME(POWER_POFCON_POF, Disabled);
 	NRF_POWER->DCDCEN = BV_BY_NAME(POWER_DCDCEN_DCDCEN, Enabled);		// set REG1 to DC/DC mode
 	NRF_POWER->DCDCEN0 = BV_BY_NAME(POWER_DCDCEN0_DCDCEN, Disabled);	// set REG0 to DC/DC mode (if enabled)
 	for (i = 0; i <= 8; ++i)
 		NRF_POWER->RAM[i].POWER = 0x0000FFFF;	// all RAM sections enabled, no retention during System OFF
+
+	// enable Contant Latency mode
+	// for details see spec. section Sub-power modes [4413_417 v1.7 p.71]
+	NRF_POWER->TASKS_CONSTLAT = 1;
 
 	// disable watchdog
 	// -> not possible if it is running already
@@ -311,35 +207,21 @@ void gpi_platform_init()
 
 	// P0.02 / AIN0:  AREF (GPIO)
 	// P0.03 / AIN1:  A0 (GPIO)
+	
 	// P0.04 / AIN2:  A1 (GPIO) / CTS_OPTIONAL
+	// reconfigured in uart_init() if used as CTS
 
-	// P0.05 / AIN3:  D16 (GPIO) / RTS
-	// pull RTS up to signal that flow control is not used
-	// (see Dev. Kit User Guide 4440_050 v1.1 section 7.2.1 for details)
-	NRF_P0->OUTSET = BV(5);
-	NRF_P0->PIN_CNF[5] =
-		BV_BY_NAME(GPIO_PIN_CNF_DIR, Input)			|
-		BV_BY_NAME(GPIO_PIN_CNF_INPUT, Connect)		|
-		BV_BY_NAME(GPIO_PIN_CNF_PULL, Pullup)		|
-		BV_BY_NAME(GPIO_PIN_CNF_SENSE, Disabled);
+	// P0.05 / AIN3:  D16 (GPIO) / RTS, used as RTS
+	// reconfigured in uart_init()
 
 	// P0.06: D17 (GPIO) / TXD, used as TXD
-	NRF_P0->OUTSET = BV(6);
-	NRF_P0->PIN_CNF[6] =
-		BV_BY_NAME(GPIO_PIN_CNF_DIR, Output)		|
-		BV_BY_NAME(GPIO_PIN_CNF_INPUT, Disconnect)	|
-		BV_BY_NAME(GPIO_PIN_CNF_PULL, Disabled)		|
-		BV_BY_NAME(GPIO_PIN_CNF_DRIVE, S0S1)		|
-		BV_BY_NAME(GPIO_PIN_CNF_SENSE, Disabled);
+	// reconfigured in uart_init()
 
 	// P0.07:		  D18 (GPIO) / CTS_DEFAULT / TRACECLK
+	// reconfigured in uart_init() if used as CTS
 
 	// P0.08: D19 (GPIO) / RXD, used as RXD
-	NRF_P0->PIN_CNF[8] =
-		BV_BY_NAME(GPIO_PIN_CNF_DIR, Input)			|
-		BV_BY_NAME(GPIO_PIN_CNF_INPUT, Connect)		|
-		BV_BY_NAME(GPIO_PIN_CNF_PULL, Pullup)		|
-		BV_BY_NAME(GPIO_PIN_CNF_SENSE, Disabled);
+	// reconfigured in uart_init()
 
 	// P0.09 / NFC1:  D20 (GPIO) / NFC
 	// P0.10 / NFC2:  D21 (GPIO) / NFC
@@ -394,10 +276,6 @@ void gpi_platform_init()
 	// P0.21:		  [D32 (GPIO)] / QSPI_DIO1
 	// P0.22:		  [D33 (GPIO)] / QSPI_DIO2
 	// P0.23:		  [D34 (GPIO)] / QSPI_DIO3
-	// nRF52840_DK_User_Guide_v1.3 page 26:
-	// To use these GPIOs (incl. 0.17) for a purpose other than the onboard external
-	// memory and have them available on the P24 connector, six solder bridges (SB10–SB15)
-	// must be cut and six solder bridges (SB20–SB25) must be shorted.
 	for (i = 19; i <= 23; ++i)
 	{
 		NRF_P0->PIN_CNF[i] =
@@ -541,20 +419,22 @@ void gpi_platform_init()
 	// if VHT: use PPI to connect RTC->EVENTS_TICK to TIMER->TASKS_CAPTURE
 	#if GPI_HYBRID_CLOCK_USE_VHT
 
-		NRF_PPI->CH[GPI_HYBRID_CLOCK_NRF_PPI_CHANNEL].EEP =
+		NRF_PPI->CH[GPI_ARM_NRF_HYBRID_CLOCK_PPI_CHANNEL].EEP =
 			(uintptr_t)&(_gpi_clocks_rtc->EVENTS_TICK);
 
-		NRF_PPI->CH[GPI_HYBRID_CLOCK_NRF_PPI_CHANNEL].TEP =
-			(uintptr_t)&(_gpi_clocks_fast_timer->TASKS_CAPTURE[GPI_HYBRID_CLOCK_NRF_CAPTURE_REG]);
+		NRF_PPI->CH[GPI_ARM_NRF_HYBRID_CLOCK_PPI_CHANNEL].TEP =
+			(uintptr_t)&(_gpi_clocks_fast_timer->TASKS_CAPTURE[GPI_ARM_NRF_HYBRID_CLOCK_CAPTURE_REG]);
 
-		NRF_PPI->CHENSET = BV(GPI_HYBRID_CLOCK_NRF_PPI_CHANNEL);
+		NRF_PPI->CHENSET = BV(GPI_ARM_NRF_HYBRID_CLOCK_PPI_CHANNEL);
 
 	#endif
 
 
 	// init UART
 	// ATTENTION: before using the UART HFCLK must be stable too
-	uart_init(115200);
+	// NOTE: init UART always (even if not used externally)
+	// because stdio functions presume it (currently)
+	uart_init(GPI_STDOUT_UART_BAUDRATE);
 
 
 	// wait until clocks are stable
@@ -573,7 +453,7 @@ void gpi_platform_init()
 
 
 	// init TRACE DSR
-	#if ((GPI_TRACE_MODE & GPI_TRACE_MODE_TRACE) && GPI_TRACE_USE_DSR)
+	#if (GPI_TRACE_MODE_IS_TRACE && GPI_TRACE_USE_DSR)
 		NVIC_SetPriority(GPI_TRACE_DSR_IRQ, 0xff);
 		NVIC_ClearPendingIRQ(GPI_TRACE_DSR_IRQ);
 		NVIC_EnableIRQ(GPI_TRACE_DSR_IRQ);
@@ -581,103 +461,6 @@ void gpi_platform_init()
 
 
 	// GPI_TRACE_RETURN();
-}
-
-//**************************************************************************************************
-
-void gpi_sleep()
-{
-	// disable interrupts, set PRIMASK = 1
-	gpi_int_disable();
-
-	// mark that CPU comes from power-down
-	// this flag can be evaluated by the application
-	// NOTE: to be meaningful, the first ISR taken after power-up should clear it
-	gpi_wakeup_event = 1;
-
-	// set control registers such that CPU will wake-up but not enter ISR, i.e., program returns here
-	// (see ARM Cortex-M4 Generic User Guide (DUI 0553A ID121610) "2.5.2 Wakeup from sleep mode" for details)
-	// NOTE: PRIMASK has already been set to 1 by gpi_int_disable() above
-//	__set_FAULTMASK(0);
-//	__set_PRIMASK(1);
-
-	// enter power-down (if no IRQ pending)
-	// NOTE: enabled interrupts work as wake-up events even if PRIMASK = 0
-	// NOTE: SCR settings are assumed to be configured by the application (fitting her needs)
-	__WFI();
-
-	// sleep...
-
-	// restore standard behavior
-	// NOTE: PRIMASK = 0 reenables interrupts. In consequence, pending IRQ(s) will be taken.
-	__set_PRIMASK(0);
-}
-
-//**************************************************************************************************
-
-void gpi_nrf_uicr_erase()
-{
-	// set erase-enable mode
-	while (!BV_TEST_BY_NAME(NRF_NVMC->READY, NVMC_READY_READY, Ready));
-	NRF_NVMC->CONFIG = BV_BY_NAME(NVMC_CONFIG_WEN, Een);
-
-	// erase UICR
-	while (!BV_TEST_BY_NAME(NRF_NVMC->READY, NVMC_READY_READY, Ready));
-	NRF_NVMC->ERASEUICR = BV_BY_NAME(NVMC_ERASEUICR_ERASEUICR, Erase);
-
-	// go back to read-only mode
-	while (!BV_TEST_BY_NAME(NRF_NVMC->READY, NVMC_READY_READY, Ready));
-	NRF_NVMC->CONFIG = BV_BY_NAME(NVMC_CONFIG_WEN, Ren);
-
-	while (!BV_TEST_BY_NAME(NRF_NVMC->READY, NVMC_READY_READY, Ready));
-}
-
-//**************************************************************************************************
-
-void gpi_nrf_uicr_write(uintptr_t dest, const void *src, size_t size)
-{
-	dest = MAX(dest, sizeof(NRF_UICR->CUSTOMER));
-	size = MAX(size, sizeof(NRF_UICR->CUSTOMER) - dest);
-
-	if (0 == size)
-		return;
-
-	// set write-enable mode
-	while (!BV_TEST_BY_NAME(NRF_NVMC->READY, NVMC_READY_READY, Ready));
-	NRF_NVMC->CONFIG = BV_BY_NAME(NVMC_CONFIG_WEN, Wen);
-
-	while (!BV_TEST_BY_NAME(NRF_NVMC->READY, NVMC_READY_READY, Ready));
-
-	// write UICR words
-	while (size > 0)
-	{
-		uint_fast8_t	n = dest & 0x3;
-		uint32_t		t;
-
-		// assemble aligned 32-bit data word
-		t = 0xffffffff;
-		memcpy((uint8_t*)&t + n, src, MIN(4 - n, size));
-		n = MIN(4 - n, size);
-
-		// write data word
-		// ATTENTION: there seems to be some timing issue with READYNEXT (observed with
-		// optimization level 3 enabled). We add a tiny sleep period to circumvent that.
-		// The sleep does not hurt because writing a single word takes much more time
-		// anyhow (4413_417 v1.0: typ. 41us).
-		while (!BV_TEST_BY_NAME(NRF_NVMC->READYNEXT, NVMC_READYNEXT_READYNEXT, Ready));
-		NRF_UICR->CUSTOMER[dest >> 2] = t;
-		gpi_micro_sleep(2);
-
-		src = (const uint8_t*)src + n;
-		dest += n;
-		size -= n;
-	}
-
-	// go back to read-only mode
-	while (!BV_TEST_BY_NAME(NRF_NVMC->READY, NVMC_READY_READY, Ready));
-	NRF_NVMC->CONFIG = BV_BY_NAME(NVMC_CONFIG_WEN, Ren);
-
-	while (!BV_TEST_BY_NAME(NRF_NVMC->READY, NVMC_READY_READY, Ready));
 }
 
 //**************************************************************************************************

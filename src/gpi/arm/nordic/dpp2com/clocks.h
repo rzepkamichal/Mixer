@@ -32,7 +32,7 @@
  *
  *	@brief					general-purpose slow, fast, and hybrid clock
  *
- *	@version				$Id: 30e35eeb818af1c7a767d64261fc0b8c47f06f74 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Fabian Mager

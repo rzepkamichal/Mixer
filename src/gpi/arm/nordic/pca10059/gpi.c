@@ -3,11 +3,12 @@
 #include "../../armv7-m/olf.c"
 #include "../../armv7-m/profile.c"
 
-#include "../nrf52840/clocks.c"
-#include "../nrf52840/radio.c"
+#include "../nrf528xx/platform.c"
+#include "../nrf528xx/clocks.c"
+#include "../nrf528xx/radio.c"
+#include "../nrf528xx/stdio.c"
 
 #include "platform.c"
-#include "stdio.c"
 #include "resource_check.c"
 
 // warn if used runtime environment has not been tested (is not explicitly supported)

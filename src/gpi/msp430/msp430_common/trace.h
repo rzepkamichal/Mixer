@@ -1,7 +1,7 @@
 /***************************************************************************************************
  ***************************************************************************************************
  *
- *	Copyright (c) 2018 - 2019, Networked Embedded Systems Lab, TU Dresden
+ *	Copyright (c) 2018 - 2022, Networked Embedded Systems Lab, TU Dresden
  *	All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
  *
  *	@brief					MSP430 specific TRACE settings
  *
- *	@version				$Id: 2051ee646516ed7c29dcfebaaadda462dc51ab91 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann
@@ -72,8 +72,8 @@
 #define GPI_TRACE_VA_SIZE_MAX				FIELD_SIZEOF(Gpi_Trace_Msg, var_args)
 
 // size of TRACE buffer (number of elements)
-#ifndef GPI_TRACE_BUFFER_ELEMENTS
-	#define GPI_TRACE_BUFFER_ELEMENTS		16
+#ifndef GPI_TRACE_BUFFER_NUM_ENTRIES
+	#define GPI_TRACE_BUFFER_NUM_ENTRIES	16
 #endif
 
 // TRACE buffer entry size

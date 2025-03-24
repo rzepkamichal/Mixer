@@ -32,7 +32,7 @@
  *
  *	@brief					platform interface functions, specific for MSP430
  *
- *	@version				$Id: 6e49dccfe85ee1636c93e36ecce611254e8f8532 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann

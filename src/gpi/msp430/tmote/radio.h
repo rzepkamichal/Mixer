@@ -32,7 +32,7 @@
  *
  *	@brief					CC2420 radio interface
  *
- *	@version				$Id: 41a361b1592feaea34b75cc48e9c78d9833d3150 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann

@@ -1,7 +1,7 @@
 /***************************************************************************************************
  ***************************************************************************************************
  *
- *	Copyright (c) 2019, Networked Embedded Systems Lab, TU Dresden
+ *	Copyright (c) 2019 - 2024, Networked Embedded Systems Lab, TU Dresden
  *	All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -28,11 +28,11 @@
  *
  ***********************************************************************************************//**
  *
- *	@file					gpi/arm/nordic/nrf52840/clocks.h
+ *	@file					gpi/arm/nordic/nrf528xx/clocks.h
  *
  *	@brief					general-purpose slow, fast, and hybrid clock
  *
- *	@version				$Id: 27ef442aba60fd2729a46cc6e48d7e9b596408e5 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann
@@ -45,8 +45,8 @@
 
  **************************************************************************************************/
 
-#ifndef __GPI_ARM_nRF52840_CLOCKS_H__
-#define __GPI_ARM_nRF52840_CLOCKS_H__
+#ifndef __GPI_ARM_nRF528xx_CLOCKS_H__
+#define __GPI_ARM_nRF528xx_CLOCKS_H__
 
 //**************************************************************************************************
 //***** Includes ***********************************************************************************
@@ -77,25 +77,25 @@
 //**************************************************************************************************
 //***** Local (Private) Defines and Consts *********************************************************
 
-#ifndef GPI_FAST_CLOCK_NRF_TIMER
-	#define GPI_FAST_CLOCK_NRF_TIMER			0
+#ifndef GPI_ARM_NRF_FAST_CLOCK_TIMER
+	#define GPI_ARM_NRF_FAST_CLOCK_TIMER			0
 #endif
-#ifndef GPI_FAST_CLOCK_NRF_CAPTURE_REG
-	#define GPI_FAST_CLOCK_NRF_CAPTURE_REG		0
+#ifndef GPI_ARM_NRF_FAST_CLOCK_CAPTURE_REG
+	#define GPI_ARM_NRF_FAST_CLOCK_CAPTURE_REG		0
 #endif
 
-#ifndef GPI_SLOW_CLOCK_NRF_RTC
-	#define GPI_SLOW_CLOCK_NRF_RTC				0
+#ifndef GPI_ARM_NRF_SLOW_CLOCK_RTC
+	#define GPI_ARM_NRF_SLOW_CLOCK_RTC				0
 #endif
 
 #ifndef GPI_HYBRID_CLOCK_USE_VHT
-	#define GPI_HYBRID_CLOCK_USE_VHT			0	// otherwise HYBRID_CLOCK === FAST_CLOCK
+	#define GPI_HYBRID_CLOCK_USE_VHT				0	// otherwise HYBRID_CLOCK === FAST_CLOCK
 #endif
-#ifndef GPI_HYBRID_CLOCK_NRF_PPI_CHANNEL
-	#define GPI_HYBRID_CLOCK_NRF_PPI_CHANNEL	0	// needed only if GPI_HYBRID_CLOCK_USE_VHT is set
+#ifndef GPI_ARM_NRF_HYBRID_CLOCK_PPI_CHANNEL
+	#define GPI_ARM_NRF_HYBRID_CLOCK_PPI_CHANNEL	0	// needed only if GPI_HYBRID_CLOCK_USE_VHT is set
 #endif
-#ifndef GPI_HYBRID_CLOCK_NRF_CAPTURE_REG
-	#define GPI_HYBRID_CLOCK_NRF_CAPTURE_REG	1	// needed only if GPI_HYBRID_CLOCK_USE_VHT is set
+#ifndef GPI_ARM_NRF_HYBRID_CLOCK_CAPTURE_REG
+	#define GPI_ARM_NRF_HYBRID_CLOCK_CAPTURE_REG	1	// needed only if GPI_HYBRID_CLOCK_USE_VHT is set
 #endif
 
 //**************************************************************************************************
@@ -123,29 +123,29 @@ typedef struct Gpi_Hybrid_Reference_tag
 //***** Global Variables ***************************************************************************
 
 static volatile typeof(*NRF_TIMER0) * const		_gpi_clocks_fast_timer =
-	#if   (0 == GPI_FAST_CLOCK_NRF_TIMER)
+	#if   (0 == GPI_ARM_NRF_FAST_CLOCK_TIMER)
 		NRF_TIMER0;
-	#elif (1 == GPI_FAST_CLOCK_NRF_TIMER)
+	#elif (1 == GPI_ARM_NRF_FAST_CLOCK_TIMER)
 		NRF_TIMER1;
-	#elif (2 == GPI_FAST_CLOCK_NRF_TIMER)
+	#elif (2 == GPI_ARM_NRF_FAST_CLOCK_TIMER)
 		NRF_TIMER2;
-	#elif (3 == GPI_FAST_CLOCK_NRF_TIMER)
+	#elif (3 == GPI_ARM_NRF_FAST_CLOCK_TIMER)
 		NRF_TIMER3;
-	#elif (4 == GPI_FAST_CLOCK_NRF_TIMER)
+	#elif (4 == GPI_ARM_NRF_FAST_CLOCK_TIMER)
 		NRF_TIMER4;
 	#else
-		#error GPI_FAST_CLOCK_NRF_TIMER is invalid
+		#error GPI_ARM_NRF_FAST_CLOCK_TIMER is invalid
 	#endif
 
 static volatile typeof(*NRF_RTC0) * const		_gpi_clocks_rtc =
-	#if   (0 == GPI_SLOW_CLOCK_NRF_RTC)
+	#if   (0 == GPI_ARM_NRF_SLOW_CLOCK_RTC)
 		NRF_RTC0;
-	#elif (1 == GPI_SLOW_CLOCK_NRF_RTC)
+	#elif (1 == GPI_ARM_NRF_SLOW_CLOCK_RTC)
 		NRF_RTC1;
-	#elif (2 == GPI_SLOW_CLOCK_NRF_RTC)
+	#elif (2 == GPI_ARM_NRF_SLOW_CLOCK_RTC)
 		NRF_RTC2;
 	#else
-		#error GPI_SLOW_CLOCK_NRF_RTC is invalid
+		#error GPI_ARM_NRF_SLOW_CLOCK_RTC is invalid
 	#endif
 
 //**************************************************************************************************
@@ -167,7 +167,7 @@ static volatile typeof(*NRF_RTC0) * const		_gpi_clocks_rtc =
 //**************************************************************************************************
 //***** Implementations of Inline Functions ********************************************************
 
-static ALWAYS_INLINE Gpi_Slow_Tick_Native gpi_tick_slow_native()
+static ALWAYS_INLINE Gpi_Slow_Tick_Native gpi_tick_slow_native(void)
 {
 	// ATTENTION: counter register is asynchronous to the CPU clock, but the RTC peripheral
 	// synchronizes reads by itself (see spec. 4413_417 v1.0 page 340 "Reading the COUNTER
@@ -178,7 +178,7 @@ static ALWAYS_INLINE Gpi_Slow_Tick_Native gpi_tick_slow_native()
 
 //**************************************************************************************************
 
-static ALWAYS_INLINE Gpi_Fast_Tick_Native gpi_tick_fast_native()
+static ALWAYS_INLINE Gpi_Fast_Tick_Native gpi_tick_fast_native(void)
 {
 	// the counter register is not directly accessible
 	// -> we trigger a capture event and read the value from the capture register
@@ -188,13 +188,13 @@ static ALWAYS_INLINE Gpi_Fast_Tick_Native gpi_tick_fast_native()
 	// timestamp is taken before, during, or after the interrupt as long as it stems from the
 	// interval between function entry and return. Hence, we do not need a locking mechanism.
 
-	_gpi_clocks_fast_timer->TASKS_CAPTURE[GPI_FAST_CLOCK_NRF_CAPTURE_REG] = 1;
-	return _gpi_clocks_fast_timer->CC[GPI_FAST_CLOCK_NRF_CAPTURE_REG];
+	_gpi_clocks_fast_timer->TASKS_CAPTURE[GPI_ARM_NRF_FAST_CLOCK_CAPTURE_REG] = 1;
+	return _gpi_clocks_fast_timer->CC[GPI_ARM_NRF_FAST_CLOCK_CAPTURE_REG];
 }
 
 //**************************************************************************************************
 
-static ALWAYS_INLINE Gpi_Fast_Tick_Extended gpi_tick_fast_extended()
+static ALWAYS_INLINE Gpi_Fast_Tick_Extended gpi_tick_fast_extended(void)
 {
 	ASSERT_CT(sizeof(Gpi_Fast_Tick_Extended) == sizeof(Gpi_Fast_Tick_Native));
 	
@@ -217,7 +217,7 @@ static ALWAYS_INLINE Gpi_Hybrid_Tick gpi_tick_fast_to_hybrid(Gpi_Fast_Tick_Nativ
 //**************************************************************************************************
 #if !GPI_HYBRID_CLOCK_USE_VHT
 
-static ALWAYS_INLINE Gpi_Hybrid_Reference gpi_tick_hybrid_reference()
+static ALWAYS_INLINE Gpi_Hybrid_Reference gpi_tick_hybrid_reference(void)
 {
 	// use the full function(ality) if format extension/conversion is necessary
 //	ASSERT_CT(sizeof(Gpi_Hybrid_Tick) == sizeof(Gpi_Fast_Tick_Native));
@@ -234,7 +234,7 @@ static ALWAYS_INLINE Gpi_Hybrid_Reference gpi_tick_hybrid_reference()
 #endif	// GPI_HYBRID_CLOCK_USE_VHT
 //**************************************************************************************************
 
-static ALWAYS_INLINE Gpi_Hybrid_Tick gpi_tick_hybrid()
+static ALWAYS_INLINE Gpi_Hybrid_Tick gpi_tick_hybrid(void)
 {
 	return gpi_tick_fast_to_hybrid(gpi_tick_fast_native());
 }
@@ -284,4 +284,4 @@ static ALWAYS_INLINE uint32_t gpi_tick_fast_to_us(Gpi_Fast_Tick_Extended ticks)
 //**************************************************************************************************
 //**************************************************************************************************
 
-#endif // __GPI_ARM_nRF52840_CLOCKS_H__
+#endif // __GPI_ARM_nRF528xx_CLOCKS_H__

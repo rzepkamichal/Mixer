@@ -1,7 +1,7 @@
 /***************************************************************************************************
  ***************************************************************************************************
  *
- *	Copyright (c) 2021, Networked Embedded Systems Lab, TU Dresden
+ *	Copyright (c) 2021 - 2024, Networked Embedded Systems Lab, TU Dresden
  *	All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -32,9 +32,10 @@
  *
  *	@brief					platform interface functions, specific for Nordic nRF52840 USB Dongle
  *
- *	@version				$Id: 87d7dc9305e14a04b2ff23f524e2cea356260fdd $
+ *	@version				$Id$
  *	@date					TODO
  *
+ *	@author					Carsten Herrmann
  *	@author					Fabian Mager
  *
  ***************************************************************************************************
@@ -53,49 +54,108 @@
 
 #include "gpi/platform_spec.h"
 
+#include "../nrf528xx/platform.h"	// nRF528xx common functionality
+
 #include "gpi/tools.h"
 
 #include <nrf.h>
 
 #include <stdint.h>
-#include <string.h>
-#include <stdio.h>
 
 //**************************************************************************************************
 //***** Global (Public) Defines and Consts *********************************************************
 
-#if GPI_ARCH_IS_BOARD(nRF5_FLOCKLAB)
-	#define GPI_LED_NONE	0
-	#define GPI_LED_1		BV(13) // LED1
-	#define GPI_LED_2		BV(15) // LED2
-	#define GPI_LED_3		BV(17) // LED3
-	#define GPI_LED_4		BV(20) // INT1
-	#define GPI_LED_5		BV(22) // INT2
+#if GPI_ARCH_IS_BOARD(nRF_PCA10059_FLOCKLAB)
+
+	// On FlockLab, LEDs are output pins with GPIO tracing capabilities.
+	// Hence, we provide all such output pins as LEDs for simplicity.
+	#define GPI_LED_NONE		0
+	#define GPI_LED_1			BV(13)	// LED1
+	#define GPI_LED_2			BV(15)	// LED2
+	#define GPI_LED_3			BV(17)	// LED3
+	#define GPI_LED_INT1		BV(20)	// INT1
+	#define GPI_LED_INT2		BV(22)	// INT2
+
+	// following names are deprecated, use GPI_LED_INTx instead
+	static const int __attribute__((deprecated("use GPI_LED_INT1 instead"))) GPI_LED_4 = GPI_LED_INT1;
+	static const int __attribute__((deprecated("use GPI_LED_INT2 instead"))) GPI_LED_5 = GPI_LED_INT2;
+
+	// On FlockLab, buttons are input pins with GPIO actuation capabilities.
+	// Hence, we provide all such input pins as buttons for simplicity.
+	#define GPI_BUTTON_SIG1		BV(31)	// SIG1
+	#define GPI_BUTTON_SIG2		BV(29)	// SIG2
+	
 #else
-	#define GPI_LED_NONE	0
-	#define GPI_LED_1		BV(6)	// P0.06 LD1
-	#define GPI_LED_2		BV(8)	// P0.08 LD2 (red)
-	#define GPI_LED_3		BV(12)	// P0.12 LD2 (blue)
-	// TODO: gpi_led_on etc. work on port 0 so we disable GPI_LED_4 for now.
-	#define GPI_LED_4		0 //BV(9)	// P1.09 LD2 (green)
-	#define GPI_LED_5		0
+
+	#define GPI_LED_NONE		0
+	#define GPI_LED_1			BV(6)		// LED1
+	#define GPI_LED_2_R			BV(8)		// LED2 red
+	#define GPI_LED_2_B			BV(12)		// LED2 blue
+	#define GPI_LED_2_G			BV(16+9)	// LED2 green at P1.09
+
+	// following names are deprecated, use GPI_LED_2 instead
+	static const int __attribute__((deprecated("use GPI_LED_2_R instead"))) GPI_LED_2 = GPI_LED_2_R;
+	static const int __attribute__((deprecated("use GPI_LED_2_B instead"))) GPI_LED_3 = GPI_LED_2_B;
+
+	#define GPI_BUTTON_1		BV(6)		// SW1
+	
 #endif
 
-// TODO: Configure button (P1.06)
-//#define GPI_BUTTON(x)	x
+// for details see comments in gpi/platform.h
+static ALWAYS_INLINE int gpi_led_index_to_mask(int i)
+{
+	// NOTE: with optimization enabled, the switch block gets replaced by
+	// * a constant if i is constant (due to constant propagation)
+	// * a lookup table with preceding 1 <= i <= i_max test, or
+	// * a fast conditional execution block (on ARM)
+	switch (i)
+	{
+#if GPI_ARCH_IS_BOARD(nRF_PCA10059_FLOCKLAB)
+		case 1:		return GPI_LED_1;
+		case 2:		return GPI_LED_2;
+		case 3:		return GPI_LED_3;
+		case 4:		return GPI_LED_INT1;
+		case 5:		return GPI_LED_INT2;
+#else
+		case 1:		return GPI_LED_1;
+		case 2:		return GPI_LED_2_R;
+		case 3:		return GPI_LED_2_B;
+		case 4:		return GPI_LED_2_G;
+#endif
+		default:	return 0;
+	}
+}
+
+// for details see comments in gpi/platform.h
+static ALWAYS_INLINE int gpi_button_index_to_mask(int i)
+{
+	// NOTE: with optimization enabled, the switch block gets replaced by
+	// * a constant if i is constant (due to constant propagation)
+	// * a lookup table with preceding 1 <= i <= i_max test, or
+	// * a fast conditional execution block (on ARM)
+	switch (i)
+	{
+#if GPI_ARCH_IS_BOARD(nRF_PCA10059_FLOCKLAB)
+		case 1:		return GPI_BUTTON_SIG1;
+		case 2:		return GPI_BUTTON_SIG2;
+#else
+		case 1:		return GPI_BUTTON_1;
+#endif
+		default:	return 0;
+	}
+}
 
 //**************************************************************************************************
 //***** Local (Private) Defines and Consts *********************************************************
 
-// bitfield macros for CMSIS register definitions
-
-#define BV_BY_NAME(field, value)	((field ## _ ## value << field ## _Pos) & field ## _Msk)
-#define BV_BY_VALUE(field, value)	(((value) << field ## _Pos) & field ## _Msk)
-//#define BV_BY_NAME(field, value)	ASSERT_CT_EVAL(LSB(field ## _Msk) == field ## _Pos)
-//#define BV_BY_VALUE(field, value)	ASSERT_CT_EVAL(LSB(field ## _Msk) == field ## _Pos)
-
-#define BV_TEST_BY_NAME(reg, field, value)	(BV_BY_NAME(field, value) == ((reg) & field ## _Msk))
-#define BV_TEST_BY_VALUE(reg, field, value)	(BV_BY_VALUE(field, value) == ((reg) & field ## _Msk))
+// UART pins
+#if GPI_ARCH_IS_BOARD(nRF_PCA10059_FLOCKLAB)
+	#define _GPI_ARM_nRF_UART_TXD_PORT		1
+	#define _GPI_ARM_nRF_UART_TXD_PIN		10
+	#define _GPI_ARM_nRF_UART_RXD_PORT		0
+	#define _GPI_ARM_nRF_UART_RXD_PIN		24
+	// NOTE: According to nRF52840 PS v1.1, pin P1.10 is only recommended for low frequency I/O.
+#endif
 
 //**************************************************************************************************
 //***** Forward Class and Struct Declarations ******************************************************
@@ -110,10 +170,7 @@
 //**************************************************************************************************
 //***** Global Variables ***************************************************************************
 
-// mark that CPU comes from power-down
-// this flag can be evaluated by the application
-// NOTE: to be meaningful, the first ISR taken after power-up should clear it
-extern uint_fast8_t		gpi_wakeup_event;
+
 
 //**************************************************************************************************
 //***** Prototypes of Global Functions *************************************************************
@@ -122,21 +179,7 @@ extern uint_fast8_t		gpi_wakeup_event;
 	extern "C" {
 #endif
 
-// UICR access functions
-// UICR = User Information Configuration Registers, see spec. for details
-// ATTENTION: Writing to UICR or flash requires NVMC->CONFIG.WEN to be set which in turn
-// invalidates the instruction cache (permanently). Besides that, UICR updates take effect
-// only after reset (spec. 4413_417 v1.0 4.3.3 page 24). Therefore it is highly recommended
-// to do a soft reset (e.g., by calling NVIC_SystemReset()) after updating flash or UICR.
-static void		gpi_nrf_uicr_read(void *dest, uintptr_t src, size_t size);
-void			gpi_nrf_uicr_erase();
-void			gpi_nrf_uicr_write(uintptr_t dest, const void *src, size_t size);
 
-// standard C library does not provide getsn(), so we do it
-#if GPI_ARCH_IS_OS(NONE)
-	void		gpi_stdin_flush();
-	char* 		getsn(char* s, size_t size);
-#endif
 
 #ifdef __cplusplus
 	}
@@ -144,7 +187,9 @@ void			gpi_nrf_uicr_write(uintptr_t dest, const void *src, size_t size);
 
 //**************************************************************************************************
 //***** Implementations of Inline Functions ********************************************************
-#if GPI_ARCH_IS_BOARD(nRF5_FLOCKLAB)
+
+#if GPI_ARCH_IS_BOARD(nRF_PCA10059_FLOCKLAB)
+
 	static ALWAYS_INLINE void gpi_led_on(int mask)
 	{
 		if (mask)
@@ -156,67 +201,64 @@ void			gpi_nrf_uicr_write(uintptr_t dest, const void *src, size_t size);
 		if (mask)
 			NRF_P0->OUTCLR = mask;
 	}
+		
+	static ALWAYS_INLINE void gpi_led_toggle(int mask)
+	{
+		if (mask)
+			NRF_P0->OUT ^= mask;
+	}
+
 #else
+
 	static ALWAYS_INLINE void gpi_led_on(int mask)
 	{
-		if (mask)
-			NRF_P0->OUTCLR = mask;
+		uint_fast16_t	mask0 = mask;
+		uint_fast16_t	mask1 = mask >> 16;
+		
+		if (mask0)
+			NRF_P0->OUTCLR = mask0;
+			
+		if (mask1)
+			NRF_P1->OUTCLR = mask1;
 	}
 
 	static ALWAYS_INLINE void gpi_led_off(int mask)
 	{
-		if (mask)
-			NRF_P0->OUTSET = mask;
+		uint_fast16_t	mask0 = mask;
+		uint_fast16_t	mask1 = mask >> 16;
+		
+		if (mask0)
+			NRF_P0->OUTSET = mask0;
+			
+		if (mask1)
+			NRF_P1->OUTSET = mask1;
 	}
+		
+	static ALWAYS_INLINE void gpi_led_toggle(int mask)
+	{
+		uint_fast16_t	mask0 = mask;
+		uint_fast16_t	mask1 = mask >> 16;
+		
+		if (mask0)
+			NRF_P0->OUT ^= mask0;
+			
+		if (mask1)
+			NRF_P1->OUT ^= mask1;
+	}
+
 #endif
 
-static ALWAYS_INLINE void gpi_led_toggle(int mask)
-{
-	if (mask)
-		NRF_P0->OUT ^= mask;
-}
-
 //**************************************************************************************************
 
-// TODO: Button is on port 1.
-// static ALWAYS_INLINE uint_fast8_t gpi_button_read(int id)
-// {
-// 	// NOTE: case-selection gets optimized out by constant propagation
-// 	switch (id)
-// 	{
-// 	#if 1	// DEFAULT wiring
-// 		case 1:		return !(NRF_P0->IN & (1 << 11));
-// 		case 2: 	return !(NRF_P0->IN & (1 << 12));
-// 	#else	// OPTIONAL wiring
-// 		case 1:		return !(NRF_P1->IN & (1 << 7));
-// 		case 2: 	return !(NRF_P1->IN & (1 << 8));
-// 	#endif
-// 		case 3: 	return !(NRF_P0->IN & (1 << 24));
-// 		case 4: 	return !(NRF_P0->IN & (1 << 25));
-// 		default:	return 0;
-// 	}
-
-// /*	typeof(NRF_P0->IN)	*p;
-
-// 	if (id < 0)
-// 	{
-// 		p = &(NRF_P1->IN);
-// 		id = -id;
-// 	}
-// 	else p = &(NRF_P0->IN);
-
-// 	return !(*p & (1 << (id & 0x1F)));
-// */
-// }
-
-//**************************************************************************************************
-
-static inline void gpi_nrf_uicr_read(void *dest, uintptr_t src, size_t size)
+static ALWAYS_INLINE uint_fast8_t gpi_button_read(int mask)
 {
-	src = MAX(src, sizeof(NRF_UICR->CUSTOMER));
-	size = MAX(size, sizeof(NRF_UICR->CUSTOMER) - src);
-
-	memcpy(dest, (uint8_t*)&(NRF_UICR->CUSTOMER) + src, size);
+	// NOTE: we assume that mask is valid (= a non-zero combination of GPI_BUTTON_...)
+	
+	#if GPI_ARCH_IS_BOARD(nRF_PCA10059_FLOCKLAB)
+		return !!(NRF_P0->IN & mask);
+	#else
+		return !(NRF_P1->IN & mask);
+	#endif
 }
 
 //**************************************************************************************************

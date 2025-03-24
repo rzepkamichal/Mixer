@@ -32,7 +32,7 @@
  *
  *	@brief					TRACE settings for MSP430F16x
  *
- *	@version				$Id: d30e78dcd7cbd319534dda7a9dd27690ebf97f34 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann

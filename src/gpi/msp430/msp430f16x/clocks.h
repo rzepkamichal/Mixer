@@ -32,7 +32,7 @@
  *
  *	@brief					general-purpose slow, fast, and hybrid clock
  *
- *	@version				$Id: d340a5cd13ca97fe0566e137d262d1338fa102dd $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann

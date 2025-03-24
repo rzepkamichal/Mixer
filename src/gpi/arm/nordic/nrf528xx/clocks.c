@@ -1,7 +1,7 @@
 /***************************************************************************************************
  ***************************************************************************************************
  *
- *	Copyright (c) 2019, Networked Embedded Systems Lab, TU Dresden
+ *	Copyright (c) 2019 - 2024, Networked Embedded Systems Lab, TU Dresden
  *	All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -28,11 +28,11 @@
  *
  ***********************************************************************************************//**
  *
- *	@file					gpi/arm/nordic/nrf52840/clocks.c
+ *	@file					gpi/arm/nordic/nrf528xx/clocks.c
  *
  *	@brief					general-purpose slow, fast, and hybrid clock
  *
- *	@version				$Id: eb1a68c44b1cfd1addcdbe956d3fa73b783894d6 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann
@@ -58,15 +58,15 @@
 
 #include "gpi/resource_check.h"
 
-GPI_RESOURCE_RESERVE_SHARED(NRF_TIMER, GPI_FAST_CLOCK_NRF_TIMER);
-GPI_RESOURCE_RESERVE(NRF_TIMER_CC, GPI_FAST_CLOCK_NRF_TIMER, GPI_FAST_CLOCK_NRF_CAPTURE_REG);
+GPI_RESOURCE_RESERVE_SHARED(NRF_TIMER, GPI_ARM_NRF_FAST_CLOCK_TIMER);
+GPI_RESOURCE_RESERVE(NRF_TIMER_CC, GPI_ARM_NRF_FAST_CLOCK_TIMER, GPI_ARM_NRF_FAST_CLOCK_CAPTURE_REG);
 
 #if GPI_HYBRID_CLOCK_USE_VHT
-	GPI_RESOURCE_RESERVE(NRF_PPI_CH, GPI_HYBRID_CLOCK_NRF_PPI_CHANNEL);
-	GPI_RESOURCE_RESERVE(NRF_TIMER_CC, GPI_FAST_CLOCK_NRF_TIMER, GPI_HYBRID_CLOCK_NRF_CAPTURE_REG);
+	GPI_RESOURCE_RESERVE(NRF_PPI_CH, GPI_ARM_NRF_HYBRID_CLOCK_PPI_CHANNEL);
+	GPI_RESOURCE_RESERVE(NRF_TIMER_CC, GPI_ARM_NRF_FAST_CLOCK_TIMER, GPI_ARM_NRF_HYBRID_CLOCK_CAPTURE_REG);
 #endif
 
-GPI_RESOURCE_RESERVE_SHARED(NRF_RTC, GPI_SLOW_CLOCK_NRF_RTC);
+GPI_RESOURCE_RESERVE_SHARED(NRF_RTC, GPI_ARM_NRF_SLOW_CLOCK_RTC);
 
 //**************************************************************************************************
 //***** Local Defines and Consts *******************************************************************
@@ -180,7 +180,7 @@ Gpi_Hybrid_Reference gpi_tick_hybrid_reference()
 		// from HCLK64M), 8 nops plus the execution time of the COUNTER read should be save.
 		__NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP();
 
-		fast = _gpi_clocks_fast_timer->CC[GPI_HYBRID_CLOCK_NRF_CAPTURE_REG];
+		fast = _gpi_clocks_fast_timer->CC[GPI_ARM_NRF_HYBRID_CLOCK_CAPTURE_REG];
     }
 	while (_gpi_clocks_rtc->EVENTS_TICK);
 	

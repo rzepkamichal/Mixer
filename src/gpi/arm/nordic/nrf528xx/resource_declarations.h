@@ -1,7 +1,7 @@
 /***************************************************************************************************
  ***************************************************************************************************
  *
- *	Copyright (c) 2021, Networked Embedded Systems Lab, TU Dresden
+ *	Copyright (c) 2021 - 2024, Networked Embedded Systems Lab, TU Dresden
  *	All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -28,11 +28,11 @@
  *
  ***********************************************************************************************//**
  *
- *	@file					gpi/arm/nordic/nrf52840/resource_declarations.h
+ *	@file					gpi/arm/nordic/nrf528xx/resource_declarations.h
  *
- *	@brief					nRF52840 resource definitions (see resource_check.h)
+ *	@brief					nRF528xx resource definitions (see resource_check.h)
  *
- *	@version				$Id: d5937505a3e2f1f3d8fb7a9d0453c151876a943e $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann
@@ -45,13 +45,13 @@
 
  **************************************************************************************************/
 
-#ifndef __GPI_ARM_NRF52840_RESOURCE_DECLARATIONS_H__
-#define __GPI_ARM_NRF52840_RESOURCE_DECLARATIONS_H__
+#ifndef __GPI_ARM_NRF528xx_RESOURCE_DECLARATIONS_H__
+#define __GPI_ARM_NRF528xx_RESOURCE_DECLARATIONS_H__
 
 //**************************************************************************************************
 //***** Includes ***********************************************************************************
 
-
+#include "gpi/platform_spec.h"
 
 //**************************************************************************************************
 //***** Global (Public) Defines and Consts *********************************************************
@@ -76,7 +76,7 @@
 //**************************************************************************************************
 //***** Global Variables ***************************************************************************
 
-// nRF52840 resources
+// nRF528xx resources
 // NOTE: peripheral names are equal to those from nrf.h, besides that indexes are split up
 
 // TODO: break down subblocks as needed (gather some experience before). Consider the background
@@ -106,6 +106,14 @@ GPI_RESOURCE_DECLARE(NRF_SPIM3);
 GPI_RESOURCE_DECLARE(NRF_NFCT);
 
 GPI_RESOURCE_DECLARE(NRF_GPIOTE);
+GPI_RESOURCE_DECLARE(NRF_GPIOTE_CH, 0);
+GPI_RESOURCE_DECLARE(NRF_GPIOTE_CH, 1);
+GPI_RESOURCE_DECLARE(NRF_GPIOTE_CH, 2);
+GPI_RESOURCE_DECLARE(NRF_GPIOTE_CH, 3);
+GPI_RESOURCE_DECLARE(NRF_GPIOTE_CH, 4);
+GPI_RESOURCE_DECLARE(NRF_GPIOTE_CH, 5);
+GPI_RESOURCE_DECLARE(NRF_GPIOTE_CH, 6);
+GPI_RESOURCE_DECLARE(NRF_GPIOTE_CH, 7);
 
 GPI_RESOURCE_DECLARE(NRF_SAADC);
 
@@ -212,6 +220,12 @@ GPI_RESOURCE_DECLARE(NRF_PPI_CH, 30);
 GPI_RESOURCE_DECLARE(NRF_PPI_CH, 31);
 
 GPI_RESOURCE_DECLARE(NRF_MWU);
+GPI_RESOURCE_DECLARE(NRF_MWU_REGION, 0);
+GPI_RESOURCE_DECLARE(NRF_MWU_REGION, 1);
+GPI_RESOURCE_DECLARE(NRF_MWU_REGION, 2);
+GPI_RESOURCE_DECLARE(NRF_MWU_REGION, 3);
+GPI_RESOURCE_DECLARE(NRF_MWU_PREGION, 0);
+GPI_RESOURCE_DECLARE(NRF_MWU_PREGION, 1);
 
 GPI_RESOURCE_DECLARE(NRF_I2S);
 
@@ -219,9 +233,13 @@ GPI_RESOURCE_DECLARE(NRF_FPU);
 
 GPI_RESOURCE_DECLARE(NRF_USBD);
 
-GPI_RESOURCE_DECLARE(NRF_QSPI);
+#if GPI_ARCH_IS_DEVICE(nRF52840)
 
-GPI_RESOURCE_DECLARE(NRF_CC_HOST_RGF_CRYPTOCELL);
+	GPI_RESOURCE_DECLARE(NRF_QSPI);
+
+	GPI_RESOURCE_DECLARE(NRF_CC_HOST_RGF_CRYPTOCELL);
+
+#endif
 
 //**************************************************************************************************
 //***** Prototypes of Global Functions *************************************************************
@@ -244,4 +262,4 @@ GPI_RESOURCE_DECLARE(NRF_CC_HOST_RGF_CRYPTOCELL);
 //**************************************************************************************************
 //**************************************************************************************************
 
-#endif // __GPI_ARM_NRF52840_RESOURCE_DECLARATIONS_H__
+#endif // __GPI_ARM_NRF528xx_RESOURCE_DECLARATIONS_H__

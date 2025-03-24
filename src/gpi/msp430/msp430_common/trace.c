@@ -1,7 +1,7 @@
 /***************************************************************************************************
  ***************************************************************************************************
  *
- *	Copyright (c) 2018 - 2019, Networked Embedded Systems Lab, TU Dresden
+ *	Copyright (c) 2018 - 2022, Networked Embedded Systems Lab, TU Dresden
  *	All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
  *
  *	@brief					MSP430 TRACE implementation
  *
- *	@version				$Id: dc4ae2a070b6944590a94a56028616a1429891ad $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann
@@ -79,7 +79,7 @@
 //**************************************************************************************************
 //***** Local (Static) Variables *******************************************************************
 
-static Gpi_Trace_Msg			s_msg_queue[GPI_TRACE_BUFFER_ELEMENTS];
+static Gpi_Trace_Msg			s_msg_queue[GPI_TRACE_BUFFER_NUM_ENTRIES];
 static volatile unsigned int	s_msg_queue_num_written = 0;
 static volatile unsigned int	s_msg_queue_num_writing = 0;
 static volatile unsigned int	s_msg_queue_num_read = 0;

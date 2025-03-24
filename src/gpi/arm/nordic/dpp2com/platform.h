@@ -32,7 +32,7 @@
  *
  *	@brief					platform interface functions, specific for DPP2 Com board based on nRF52840
  *
- *	@version				$Id: 34ee348a1963feb4d7f0b188a5c9de69873f744a $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Fabian Mager

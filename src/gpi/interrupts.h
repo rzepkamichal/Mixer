@@ -32,7 +32,7 @@
  *
  *	@brief					basic interrupt handling (enable/disable, lock/unlock, ...)
  *
- *	@version				$Id: 65445956917db32ed767b65a3fb1ec61bd90dec5 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann

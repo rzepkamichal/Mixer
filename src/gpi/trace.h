@@ -1,7 +1,7 @@
 /***************************************************************************************************
  ***************************************************************************************************
  *
- *	Copyright (c) 2018 - 2019, Networked Embedded Systems Lab, TU Dresden
+ *	Copyright (c) 2018 - 2024, Networked Embedded Systems Lab, TU Dresden
  *	All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -30,20 +30,26 @@
  *
  *	@file					gpi/trace.h
  *
- *	@brief					macros for (debug) log messages, facilitating a consistent handling
- *							w.r.t. the output channel, format, and (de-)activation of message types
+ *	@brief					Macros for log messages, facilitating a consistent handling w.r.t. the
+ *							output channel, format, and (de-)activation of message types / groups.
  *
- *	@version				$Id: f6137acc2228585feef6a45527f457627035b38a $
- *	@date					TODO
+ * @internal
+ *	@version				\$Id$
+ *	@noop @date				git log -1 <filename>
  *
  *	@author					Carsten Herrmann
+ * @endinternal
  *
  ***************************************************************************************************
 
  	@details
 	
 	TODO
-	
+	- GPI_TRACE_MODE erläutern (ggf. Text verschieben)
+	- message groups
+	- message types
+	- platform-specific settings
+
  **************************************************************************************************/
 
 #ifndef __GPI_TRACE_H__
@@ -52,7 +58,7 @@
 //**************************************************************************************************
 //***** Includes ***********************************************************************************
 
-// helper macros for stringification
+// internal helper macros for stringification
 #define GPI_TRACE_STRINGIFY2(x)		#x
 #define GPI_TRACE_STRINGIFY(x)		GPI_TRACE_STRINGIFY2(x)
 
@@ -71,7 +77,7 @@
 	#define GPI_TRACE_MODE			GPI_TRACE_MODE_NO_TRACE
 #endif
 
-#include "gpi/platform_spec.h"			// GPI_PLATFORM_PATH
+#include "gpi/platform_spec.h"			// GPI_PLATFORM_PATH()
 #include GPI_PLATFORM_PATH(trace.h)		// GPI_TRACE_VA_SIZE_MAX
 #include "gpi/tools.h"					// VA_NUM, ASSERT_CT, LSB, ...
 
@@ -94,6 +100,7 @@
 
 //**************************************************************************************************
 
+// convert GPI_TRACE_MSG_TYPE_... to 1-based type index (0 = no specific type)
 #define _GPI_TRACE_TYPE_INDEX(group)	(		\
 	!(group & GPI_TRACE_MSG_TYPE_MASK) ? 0 :	\
 	1 + LSB(group & GPI_TRACE_MSG_TYPE_MASK) - LSB(GPI_TRACE_MSG_TYPE_MASK))
@@ -196,22 +203,73 @@
 //**************************************************************************************************
 //***** Global Defines and Consts ******************************************************************
 
-/// @name possible TRACE modes
+/// @name Trace Mode Settings
+/// @anchor trace_mode_settings
+/// The active trace mode is defined by setting #GPI_TRACE_MODE to #GPI_TRACE_MODE_TRACE (i.e.,
+/// log enabled messages) or #GPI_TRACE_MODE_NO_TRACE (i.e., drop all GPI_TRACE_... calls).
+/// The setting can be combined (bitwise or) with other options listed here, e.g.
+/// #GPI_TRACE_MODE = (#GPI_TRACE_MODE_TRACE | #GPI_TRACE_MODE_FLUSH_NOAUTO).
 /// @{
-#define GPI_TRACE_MODE_NO_TRACE                 0		///< enables log output. see GPI_TRACE_MODE for details
-#define GPI_TRACE_MODE_TRACE                    1		///< disables log output. see GPI_TRACE_MODE for details
+
+/// @def GPI_TRACE_MODE
+/// @brief Active trace mode (defined by the user).
+/// @details When GPI_TRACE_MODE is set to #GPI_TRACE_MODE_TRACE, then GPI_TRACE_...() calls are
+/// processed and messages from enabled message groups are logged as expected.
+/// In contrast, when GPI_TRACE_MODE is set to #GPI_TRACE_MODE_NO_TRACE, then all GPI_TRACE_...()
+/// calls are dropped, i.e., they are eliminated from the program (except for #GPI_TRACE_RETURN()
+/// variants, which are replaced by corresponding `return` statements). Hence, while
+/// #GPI_TRACE_MODE_TRACE is the normal setting during program development and bugfixing, 
+/// #GPI_TRACE_MODE_NO_TRACE can be used to remove all trace functionality without changing the
+/// source code, e.g., to speed up program execution.
+///
+/// GPI_TRACE_MODE is a bitfield and can be combined with other
+/// @ref trace_mode_settings "GPI_TRACE_MODE_..." options.
+/// @sa @ref trace_mode_settings "Trace Mode Settings"
+
+#define GPI_TRACE_MODE_NO_TRACE                 0		///< Disables log output (default). See #GPI_TRACE_MODE for details.
+#define GPI_TRACE_MODE_TRACE                    1		///< Enables log output. See #GPI_TRACE_MODE for details.
+#define GPI_TRACE_MODE_FLUSH_AUTO				0		///< Enables automatic flush for non GPI_TRACE_..._FAST macros (default).
+#define GPI_TRACE_MODE_FLUSH_NOAUTO				2		///< Disables automatic flush. Application must call #GPI_TRACE_FLUSH() manually.
+
 /// @}
 
-/// @name output options
+/// @name Trace Mode Test Macros
+/// The following macros can be used to determine the configured #GPI_TRACE_MODE settings from 
+/// inside the program. This can be useful, e.g., to conditionally include trace related code like
+/// application-specific formatting functions.
+///
+/// When necessary, do not evaluate #GPI_TRACE_MODE directly (as in
+/// #if (#GPI_TRACE_MODE & #GPI_TRACE_MODE_TRACE))
+/// and use the test macros instead (as in #if (#GPI_TRACE_MODE_IS_TRACE)) because the test macros
+/// work independent of the default setting of a flag (i.e., the one with value defined as 0).
+/// For example, testing (#GPI_TRACE_MODE & #GPI_TRACE_MODE_TRACE) works, but testing
+/// (#GPI_TRACE_MODE & #GPI_TRACE_MODE_NO_TRACE) would fail because this is always 0.
+/// Changing the default to #GPI_TRACE_MODE_TRACE (by assigning 0 and 1 the other way around)
+/// would break the other test, so this is a potential source for errors.
+/// Such errors can be avoided by using consistent test macros.
 /// @{
-#define GPI_TRACE_LOG_FILE              		UINT32_C(0x80000000)	///< print source file name and line number
-#define GPI_TRACE_LOG_SCOPE             		UINT32_C(0x40000000)    ///< print class::function scope
-#define GPI_TRACE_LOG_TASK              		UINT32_C(0x20000000)    ///< print task id or name or something similar
-#define GPI_TRACE_LOG_TIME              		UINT32_C(0x10000000)    ///< print current timestamp
-#define GPI_TRACE_LOG_TYPE						UINT32_C(0x08000000)	///< highlight message type
+#define _GPI_TRACE_MODE_IS(setting, option, not_option)					\
+	(GPI_TRACE_MODE_ ## setting ## _ ## option == (GPI_TRACE_MODE &		\
+	(GPI_TRACE_MODE_ ## setting ## _ ## option | GPI_TRACE_MODE_ ## setting ## _ ## not_option)))
+
+#define GPI_TRACE_MODE_IS_TRACE					(GPI_TRACE_MODE & GPI_TRACE_MODE_TRACE)		///< Test if #GPI_TRACE_MODE_TRACE is active.
+#define GPI_TRACE_MODE_IS_NO_TRACE				(!(GPI_TRACE_MODE & GPI_TRACE_MODE_TRACE))	///< Test if #GPI_TRACE_MODE_NO_TRACE is active.
+#define GPI_TRACE_MODE_IS_FLUSH_AUTO			_GPI_TRACE_MODE_IS(FLUSH, AUTO, NOAUTO)		///< Test if #GPI_TRACE_MODE_FLUSH_AUTO is active.
+#define GPI_TRACE_MODE_IS_FLUSH_NOAUTO			_GPI_TRACE_MODE_IS(FLUSH, NOAUTO, AUTO)		///< Test if #GPI_TRACE_MODE_FLUSH_NOAUTO is active.
 /// @}
 
-/// @name standard message types
+/// @name Output Control Options
+/// The following options can be set via GPI_TRACE_CONFIG() and select the fields that are
+/// logged automatically with each message.
+/// @{
+#define GPI_TRACE_LOG_FILE              		UINT32_C(0x80000000)	///< Log source file name and line number.
+#define GPI_TRACE_LOG_SCOPE             		UINT32_C(0x40000000)    ///< Log class::function scope.
+#define GPI_TRACE_LOG_TASK              		UINT32_C(0x20000000)    ///< Log task/thread ID or name or something similar.
+#define GPI_TRACE_LOG_TIME              		UINT32_C(0x10000000)    ///< Log current timestamp.
+#define GPI_TRACE_LOG_TYPE						UINT32_C(0x08000000)	///< Highlight message type (ERROR, WARNING, etc., see TODO).
+/// @}
+
+/// @name standard message groups and types
 /// @{
 #define GPI_TRACE_LOG_FUNCTION_ENTRY			UINT32_C(0x02000000)	// for internal use only (externally, consider GPI_TRACE_LOG_FUNCTION_CALLS instead)
 #define GPI_TRACE_LOG_FUNCTION_RETURN			UINT32_C(0x02000000)	// for internal use only (externally, consider GPI_TRACE_LOG_FUNCTION_CALLS instead)
@@ -247,7 +305,7 @@
 // TRACE macros
 
 // if TRACE enabled
-#if (GPI_TRACE_MODE & GPI_TRACE_MODE_TRACE)
+#if (GPI_TRACE_MODE_IS_TRACE)
 
 	/// configure log format options and select active message types/groups
 	///
@@ -403,11 +461,16 @@
         } while (0)
 
 	/// print log message
-	#define GPI_TRACE_MSG(group, msg, ...)						\
-		do {													\
-			GPI_TRACE_MSG_FAST(group, msg, ##__VA_ARGS__);		\
-			GPI_TRACE_FLUSH();									\
-		} while (0)
+	#if (GPI_TRACE_MODE_IS_FLUSH_AUTO)
+		#define GPI_TRACE_MSG(group, msg, ...)						\
+			do {													\
+				GPI_TRACE_MSG_FAST(group, msg, ##__VA_ARGS__);		\
+				GPI_TRACE_FLUSH();									\
+			} while (0)
+	#else
+		#define GPI_TRACE_MSG(group, msg, ...)						\
+				GPI_TRACE_MSG_FAST(group, msg, ##__VA_ARGS__)
+	#endif
 
 	/// log function call/entry
 	#define GPI_TRACE_FUNCTION_FAST()     												\
@@ -419,11 +482,17 @@
         } while (0)
 
 	/// @copybrief GPI_TRACE_FUNCTION_FAST
-	#define GPI_TRACE_FUNCTION()						\
-		do {											\
-			GPI_TRACE_FUNCTION_FAST();					\
-			GPI_TRACE_FLUSH();							\
-		} while (0)
+	#if (GPI_TRACE_MODE_IS_FLUSH_AUTO)
+		#define GPI_TRACE_FUNCTION()						\
+			do {											\
+				GPI_TRACE_FUNCTION_FAST();					\
+				GPI_TRACE_FLUSH();							\
+			} while (0)
+	#else
+		/// @copybrief GPI_TRACE_FUNCTION_FAST
+		#define GPI_TRACE_FUNCTION()						\
+				GPI_TRACE_FUNCTION_FAST()
+	#endif
 
 	// GPI_TRACE_RETURN functionality
 	//
@@ -488,7 +557,7 @@
 
 	/// log function return/exit
 	#define GPI_TRACE_RETURN_FAST(...)		GPI_TRACE_RETURN_INTERNAL(0, ##__VA_ARGS__)
-	#define GPI_TRACE_RETURN(...)			GPI_TRACE_RETURN_INTERNAL(1, ##__VA_ARGS__)
+	#define GPI_TRACE_RETURN(...)			GPI_TRACE_RETURN_INTERNAL(GPI_TRACE_MODE_IS_FLUSH_AUTO, ##__VA_ARGS__)
 		///< @copybrief GPI_TRACE_RETURN_FAST
 
 	#define GPI_TRACE_RETURN_MSG_INTERNAL(msg, ...)										\
@@ -509,12 +578,17 @@
 		} while (0)
 	
 	/// @copybrief GPI_TRACE_RETURN_MSG_FAST
-	#define GPI_TRACE_RETURN_MSG(r, msg, ...)						\
-		do {														\
-			GPI_TRACE_RETURN_MSG_INTERNAL(msg, ##__VA_ARGS__);		\
-			GPI_TRACE_FLUSH();										\
-			return r;												\
-		} while (0)
+	#if (GPI_TRACE_MODE_IS_FLUSH_AUTO)
+		#define GPI_TRACE_RETURN_MSG(r, msg, ...)						\
+			do {														\
+				GPI_TRACE_RETURN_MSG_INTERNAL(msg, ##__VA_ARGS__);		\
+				GPI_TRACE_FLUSH();										\
+				return r;												\
+			} while (0)
+	#else
+		#define GPI_TRACE_RETURN_MSG(r, msg, ...)						\
+				GPI_TRACE_RETURN_MSG_FAST(r, msg, ##__VA_ARGS__)
+	#endif
 	
 // if TRACE disabled
 #else	// GPI_TRACE_MODE

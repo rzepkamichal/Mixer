@@ -1,7 +1,7 @@
 /***************************************************************************************************
  ***************************************************************************************************
  *
- *	Copyright (c) 2019, Networked Embedded Systems Lab, TU Dresden
+ *	Copyright (c) 2019 - 2024, Networked Embedded Systems Lab, TU Dresden
  *	All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -28,11 +28,11 @@
  *
  ***********************************************************************************************//**
  *
- *	@file					gpi/arm/nordic/nrf52840/olf.h
+ *	@file					gpi/arm/nordic/nrf528xx/trace.h
  *
- *	@brief					optimized low-level functions, tuned for Nordic nRF52840
+ *	@brief					TRACE settings for Nordic nRF528xx
  *
- *	@version				$Id: 5308f0562ff7081aa9ab5e5aebd3a5e894dc9d01 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann
@@ -40,21 +40,25 @@
  ***************************************************************************************************
 
  	@details
-
+	
 	TODO
 
  **************************************************************************************************/
 
-#ifndef __GPI_ARM_nRF52840_OLF_H__
-#define __GPI_ARM_nRF52840_OLF_H__
+#ifndef __GPI_nRF528xx_TRACE_H__
+#define __GPI_nRF528xx_TRACE_H__
 
 //**************************************************************************************************
 //***** Includes ***********************************************************************************
 
-// include non-device-specific functions from core part
-#include "gpi/arm/armv7-m/olf.h"
+#include "gpi/platform_spec.h"
+#include "gpi/tools.h"
+#include "gpi/clocks.h"
+#include "gpi/resource_check.h"
 
-#include <string.h>
+#include <nrf.h>
+
+// post includes see below
 
 //**************************************************************************************************
 //***** Global (Public) Defines and Consts *********************************************************
@@ -64,7 +68,16 @@
 //**************************************************************************************************
 //***** Local (Private) Defines and Consts *********************************************************
 
-
+// select whether TRACE functions internally use a DSR (delayed service routine)
+// pro: better timing when using TRACE on interrupt level
+// con: uses an interrupt (interrupts must be enabled, "asynchronous" execution)
+#ifndef GPI_TRACE_USE_DSR
+	#define GPI_TRACE_USE_DSR			GPI_HYBRID_CLOCK_USE_VHT
+	
+	ASSERT_CT_WARN_STATIC(GPI_TRACE_USE_DSR ||
+		(!GPI_HYBRID_CLOCK_USE_VHT && sizeof(Gpi_Hybrid_Tick) == sizeof(Gpi_Fast_Tick_Native)),
+		enabling_GPI_TRACE_USE_DSR_could_be_beneficial);
+#endif
 
 //**************************************************************************************************
 //***** Forward Class and Struct Declarations ******************************************************
@@ -97,34 +110,28 @@
 //**************************************************************************************************
 //***** Implementations of Inline Functions ********************************************************
 
-static ALWAYS_INLINE void gpi_memcpy_8(void* dest, const void* src, size_t size)
-{
-	__builtin_memcpy(dest, src, size);
-}
+#if GPI_TRACE_USE_DSR
 
-static ALWAYS_INLINE void gpi_memcpy_dma_aligned(void *dest, const void *src, size_t size)
-{
-	__builtin_memcpy(dest, src, size);
-}
+	#if GPI_ARCH_IS_DEVICE(nRF52840)
+		#define GPI_TRACE_DSR_IRQ					CRYPTOCELL_IRQn
+		#define GPI_TRACE_DSR_VECTOR				CRYPTOCELL_IRQHandler
+	#else
+		#define GPI_TRACE_DSR_IRQ					SWI5_EGU5_IRQn
+		#define GPI_TRACE_DSR_VECTOR				SWI5_EGU5_IRQHandler
+		GPI_RESOURCE_RESERVE_SHARED(NRF_EGU_SWI, 5);
+	#endif
 
-static ALWAYS_INLINE void gpi_memcpy_dma(void *dest, const void *src, size_t size)
-{
-	__builtin_memcpy(dest, src, size);
-}
+	static inline void gpi_trace_trigger_dsr()	{ NVIC->STIR = GPI_TRACE_DSR_IRQ;		}
 
-static ALWAYS_INLINE void gpi_memcpy_dma_inline(void *dest, const void *src, size_t size)
-{
-	__builtin_memcpy(dest, src, size);
-}
+#endif
 
 //**************************************************************************************************
+//***** Post Includes ******************************************************************************
 
-static ALWAYS_INLINE void gpi_memmove_dma_inline(void *dest, const void *src, size_t size)
-{
-	__builtin_memmove(dest, src, size);
-}
+// include the generic file not before the specific settings made above
+#include "gpi/arm/armv7-m/trace.h"
 
 //**************************************************************************************************
 //**************************************************************************************************
 
-#endif // __GPI_ARM_nRF52840_OLF_H__
+#endif // __GPI_nRF528xx_TRACE_H__

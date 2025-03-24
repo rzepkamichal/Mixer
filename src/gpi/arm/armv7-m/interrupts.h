@@ -32,7 +32,7 @@
  *
  *	@brief					basic interrupt handling
  *
- *	@version				$Id: 2d2a1e6041b1edd60a76c899bcfb346f3ff4c1c9 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann
@@ -70,12 +70,21 @@
 
 // gpi_int_lock() locks all interrupts with priority >= GPI_ARM_INTLOCK_PRIORITY
 // (use NVIC_SetPriority() to define priorities). Use 0 to lock all interrupts.
-// Setting GPI_ARM_INTLOCK_PRIORITY = 0x100 causes gpi_int_lock() to have no effect.
+// Setting GPI_ARM_INTLOCK_PRIORITY = 1 << __NVIC_PRIO_BITS (i.e. _GPI_ARM_INTLOCK_PRIOMASK = 0x100)
+// causes gpi_int_lock() to have no effect.
+// NOTE: We distinguish between GPI_ARM_INTLOCK_PRIORITY and (internal) _GPI_ARM_INTLOCK_PRIOMASK
+// because CMSIS' NVIC_SetPriority() use priority values 0, 1, ..., (1 << __NVIC_PRIO_BITS) - 1,
+// i.e. the shift to the MSBs is hidden internally. GPI_ARM_INTLOCK_PRIORITY should use the same
+// interpretation as NVIC_SetPriority().
 #ifndef GPI_ARM_INTLOCK_PRIORITY
 	#define GPI_ARM_INTLOCK_PRIORITY	0
-#else
-	ASSERT_CT_STATIC(GPI_ARM_INTLOCK_PRIORITY <= 0x100, GPI_ARM_INTLOCK_PRIORITY_is_invalid);
 #endif
+#ifndef __NVIC_PRIO_BITS
+	#error "__NVIC_PRIO_BITS not defined (should come from CMSIS device header file)"
+#endif
+#define _GPI_ARM_INTLOCK_PRIOMASK	(GPI_ARM_INTLOCK_PRIORITY << (8 - __NVIC_PRIO_BITS))
+
+ASSERT_CT_STATIC(_GPI_ARM_INTLOCK_PRIOMASK <= 0x100, GPI_ARM_INTLOCK_PRIORITY_is_invalid);
 
 // Since ARMv7-M there are specific instructions (load/store exclusive) to support unblocking
 // synchronization. However, due to some implementation dependent details the usage of these
@@ -148,11 +157,11 @@ static ALWAYS_INLINE int gpi_int_lock()
 	// This is a matter of taste (it is not absolutely necessary if performance is secondary).
 	__asm__ volatile
 	(
-#if (GPI_ARM_INTLOCK_PRIORITY > 0)
+#if (_GPI_ARM_INTLOCK_PRIOMASK > 0)
 		"mrs	%0, BASEPRI		\n"		// ie = __get_BASEPRI()
 		"msr	BASEPRI, %1		\n"		// __set_BASEPRI(...)
 		: "=&r"(ie)
-		: "r"(GPI_ARM_INTLOCK_PRIORITY & 0xFF)
+		: "r"(_GPI_ARM_INTLOCK_PRIOMASK & 0xFF)
 #else
 		"mrs	%0, PRIMASK		\n"		// ie = __get_PRIMASK()
 		"cpsid	i				\n"		// __set_PRIMASK(0) / __disable_irq()
@@ -174,7 +183,7 @@ static ALWAYS_INLINE void gpi_int_unlock(int ie)
 	__DMB();
 
 	// NOTE: we expect ie as it has been returned by gpi_int_lock()
-#if (GPI_ARM_INTLOCK_PRIORITY > 0)
+#if (_GPI_ARM_INTLOCK_PRIOMASK > 0)
 	__set_BASEPRI(ie);
 #else
 	__set_PRIMASK(ie);

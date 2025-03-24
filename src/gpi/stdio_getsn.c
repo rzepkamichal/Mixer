@@ -32,7 +32,7 @@
  *
  *	@brief					simple implementation of getsn()
  *
- *	@version				$Id: 1d9218bce13fb54fe57b0ab1fe7fa2969ddbf66c $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann

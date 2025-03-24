@@ -32,7 +32,7 @@
  *
  *	@brief					platform interface functions
  *
- *	@version				$Id: cdf932017c95a91de589e6c6be6243e51f66a702 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann

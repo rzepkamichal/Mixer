@@ -32,7 +32,7 @@
  *
  *	@brief					helper macros for avoiding resource conflicts
  *
- *	@version				$Id: 4a43826e1da120551a8a16f5ac91944473d4897d $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann
@@ -250,7 +250,7 @@
 		extern const char gpi_resource_declaration_ ## id [];	\
 		/* local marker, throws error if resource declaration is missing */	\
 		static const char * const _GPI_RESOURCE_SECTION_DECL	\
-			CONCAT(gpi_resource_reservation_ ## id ## _, __COUNTER__) =	\
+			CONCAT(gpi_resource_reservation_ ## id ## _ref, __COUNTER__) =	\
 			&gpi_resource_declaration_ ## id [0];				\
 		/* global marker variable, declared as common */		\
 		const char * const __attribute__((common))				\

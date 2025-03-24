@@ -32,7 +32,7 @@
  *
  *	@brief					optimized low-level functions, tuned for MSP430
  *
- *	@version				$Id: 7631d0faf3d947cec9b9d1cbd675c8ab8acdcac9 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann

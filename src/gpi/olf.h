@@ -32,7 +32,7 @@
  *
  *	@brief					optimized low-level functions
  *
- *	@version				$Id: e8715352ef96f94ec8a461b55d033179805d20d6 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann

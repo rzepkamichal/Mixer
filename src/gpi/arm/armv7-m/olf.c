@@ -32,7 +32,7 @@
  *
  *	@brief					optimized low-level functions, tuned for ARMv7-M
  *
- *	@version				$Id: f302c8fdb1a77a3c191593ecee65161a30bec7de $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann

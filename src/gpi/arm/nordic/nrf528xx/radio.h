@@ -1,7 +1,7 @@
 /***************************************************************************************************
  ***************************************************************************************************
  *
- *	Copyright (c) 2019, Networked Embedded Systems Lab, TU Dresden
+ *	Copyright (c) 2019 - 2024, Networked Embedded Systems Lab, TU Dresden
  *	All rights reserved.
  *
  *	Redistribution and use in source and binary forms, with or without
@@ -28,11 +28,11 @@
  *
  ***********************************************************************************************//**
  *
- *	@file					gpi/arm/nordic/nrf52840/radio.h
+ *	@file					gpi/arm/nordic/nrf528xx/radio.h
  *
- *	@brief					nRF52840 radio interface
+ *	@brief					nRF528xx radio interface
  *
- *	@version				$Id: 2f08faa0422d6515b918a918726716463e024ed1 $
+ *	@version				$Id$
  *	@date					TODO
  *
  *	@author					Carsten Herrmann
@@ -45,8 +45,8 @@
 
  **************************************************************************************************/
 
-#ifndef __GPI_ARM_nRF52840_RADIO_H__
-#define __GPI_ARM_nRF52840_RADIO_H__
+#ifndef __GPI_ARM_nRF528xx_RADIO_H__
+#define __GPI_ARM_nRF528xx_RADIO_H__
 
 //**************************************************************************************************
 //***** Includes ***********************************************************************************
@@ -99,7 +99,8 @@ void 					gpi_radio_init(Gpi_Radio_Mode mode);
 Gpi_Radio_Mode			gpi_radio_get_mode();
 unsigned int			gpi_radio_dbm_to_power_level(int dbm);
 void 					gpi_radio_set_tx_power(unsigned int pa_level);
-void 					gpi_radio_set_channel(unsigned int channel);
+void					gpi_radio_set_center_frequency(uint_fast16_t frequency);
+void 					gpi_radio_set_channel(int channel);
 void					gpi_radio_ble_set_access_address(unsigned int address);
 
 #ifdef __cplusplus
@@ -114,4 +115,4 @@ void					gpi_radio_ble_set_access_address(unsigned int address);
 //**************************************************************************************************
 //**************************************************************************************************
 
-#endif // __GPI_ARM_nRF52840_RADIO_H__
+#endif // __GPI_ARM_nRF528xx_RADIO_H__

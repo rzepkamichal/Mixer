@@ -330,6 +330,14 @@
 	#define LED_RX				GPI_LED_NONE //GPI_LED_1
 	#define LED_TX				GPI_LED_NONE
 	#define LED_UPDATE_TASK		GPI_LED_NONE
+#elif GPI_ARCH_IS_BOARD(TUDNES_SHEPHERD_NRF52840FRAM_V13)
+
+	#define LED_GRID_TIMER_ISR	GPI_LED_NONE
+	#define LED_RADIO_ISR		GPI_LED_NONE
+	#define LED_TIMEOUT_ISR		GPI_LED_NONE
+	#define LED_RX				GPI_LED_NONE
+	#define LED_TX				GPI_LED_NONE
+	#define LED_UPDATE_TASK		GPI_LED_NONE
 
 #else
 	#pragma message "mixer diagnostic LEDs are deactivated because GPI_ARCH_BOARD is unknown"

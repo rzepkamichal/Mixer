@@ -78,6 +78,7 @@ GPI_TRACE_CONFIG(mixer_transport, GPI_TRACE_BASE_SELECTION | GPI_TRACE_LOG_USER)
 
 #include "gpi/tools.h"
 #include "gpi/platform.h"
+#include "gpi/arm/nordic/nrf528xx/platform_internal.h"
 #include "gpi/clocks.h"
 #include "gpi/interrupts.h"
 #include "gpi/olf.h"

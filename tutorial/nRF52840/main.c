@@ -66,6 +66,7 @@ GPI_TRACE_CONFIG(main, GPI_TRACE_BASE_SELECTION);
 
 #include "gpi/tools.h"
 #include "gpi/platform.h"
+#include "gpi/arm/nordic/nrf528xx/platform_internal.h"
 #include "gpi/interrupts.h"
 #include "gpi/clocks.h"
 #include "gpi/olf.h"
@@ -112,7 +113,7 @@ static uint32_t		msgs_wrong;
 // tos-set-symbol (a script) on the elf file). Thus, it is well suited as a node id variable.
 // ATTENTION: it is important to have TOS_NODE_ID in .data (not in .bss), otherwise tos-set-symbol
 // will not work
-uint16_t __attribute__((section(".data")))	TOS_NODE_ID = 0;
+uint16_t __attribute__((section(".data")))	TOS_NODE_ID = 1;
 
 //**************************************************************************************************
 //***** Local Functions ****************************************************************************

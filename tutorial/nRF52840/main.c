@@ -113,7 +113,7 @@ static uint32_t		msgs_wrong;
 // tos-set-symbol (a script) on the elf file). Thus, it is well suited as a node id variable.
 // ATTENTION: it is important to have TOS_NODE_ID in .data (not in .bss), otherwise tos-set-symbol
 // will not work
-uint16_t __attribute__((section(".data")))	TOS_NODE_ID = 1;
+uint16_t __attribute__((section(".data")))	TOS_NODE_ID = 0;
 
 //**************************************************************************************************
 //***** Local Functions ****************************************************************************
